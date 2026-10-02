@@ -333,20 +333,11 @@ impl App {
         // A bare letter in a field is not intercepted — it must type itself: expressions contain both `w`
         // and `len`. But ALT plus a letter does not type itself in a field, and that is given to the
         // command. The rule is one: with no focus, the bare letter; with focus, Alt.
-        let typing = ctx.egui_wants_keyboard_input();
-        use egui::Key;
-        let key = ctx.input(|i| {
-            let ok = if typing { i.modifiers.alt && !i.modifiers.command && !i.modifiers.ctrl } else { !i.modifiers.any() };
-            if !ok {
-                return None;
-            }
-            const KEYS: [Key; 23] = [
-                Key::S, Key::L, Key::R, Key::C, Key::A, Key::P, Key::G, Key::D, Key::E, Key::O, Key::N, Key::T, Key::F, Key::M, Key::X,
-                Key::K, Key::Q, Key::H, Key::U, Key::J, Key::I, Key::B, Key::Y,
-            ];
-            KEYS.into_iter().find(|&k| i.key_pressed(k))
-        });
-        let Some(key) = key else { return };
+        if self.hotkeys.action.is_some() {
+            return; // the reference window is waiting for a key to ASSIGN, not to run
+        }
+        // the rule itself (bare or Alt by focus, Ctrl chords always) lives in `pressed_chord`, beside the table it reads
+        let Some(key) = qymcad_ui_state::pressed_chord(ctx) else { return };
         if qymcad_ui_state::edit_si(&self.project, &self.sketch_ses).is_some() {
             self.sketch_hotkey(key);
         } else {
