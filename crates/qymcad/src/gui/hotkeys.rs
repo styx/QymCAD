@@ -194,8 +194,11 @@ fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui, table: f32) -> Column
     // the button also says "press a key" while it waits and "no key" when unbound
     let words = ["hotkeys-press", "hotkeys-unbound"].map(|k| width(crate::i18n::tr(k), &body) + pad);
     let key = HOTKEYS.iter().map(|r| width(qymcad_ui_state::key_label(&qymcad_ui_state::hotkey_key(set, r.action)), &mono) + pad).chain(words).fold(KEY_W, f32::max);
-    // the two row icons, the gap between them and the room after the reset icon
-    let tools = 2.0 * ui.spacing().interact_size.y + ICON_GAP + RESET_PAD;
+    // THE TWO ROW ICONS AS WIDE AS THEY ARE DRAWN - the glyph and the button's padding, wider than the square they
+    // ask for - then the gap between them and the room after the reset icon. Counted as squares, the column came
+    // out narrower than drawn, and the table pushed the body of the window past its title bar.
+    let icon = |glyph: &str| (width(glyph.to_string(), &body) + pad).max(ui.spacing().interact_size.y);
+    let tools = icon(ph::X) + icon(ph::ARROW_COUNTER_CLOCKWISE) + ICON_GAP + RESET_PAD;
     let what = (table - key - tools - 2.0 * GRID_GAP).max(KEY_W);
     Columns { key, what }
 }
