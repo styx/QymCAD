@@ -195,7 +195,7 @@ fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui, table: f32) -> Column
     let words = ["hotkeys-press", "hotkeys-unbound"].map(|k| width(crate::i18n::tr(k), &body) + pad);
     let key = HOTKEYS.iter().map(|r| width(qymcad_ui_state::key_label(&qymcad_ui_state::hotkey_key(set, r.action)), &mono) + pad).chain(words).fold(KEY_W, f32::max);
     // the two row icons, the gap between them and the room after the reset icon
-    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x + RESET_PAD;
+    let tools = 2.0 * ui.spacing().interact_size.y + ICON_GAP + RESET_PAD;
     let what = (table - key - tools - 2.0 * GRID_GAP).max(KEY_W);
     Columns { key, what }
 }
@@ -316,28 +316,28 @@ fn row_tools(wc: &mut qymcad_ui_state::WinCtx, ui: &mut egui::Ui, r: &HotkeyRow)
         if !rebindable(r.area) {
             return;
         }
+        // THE GAPS ARE SET HERE, exactly: with no item spacing in the row, `ICON_GAP` alone stands between the icons
+        // and `RESET_PAD` alone between the reset icon and the end of the cell, the last column of the table
+        ui.spacing_mut().item_spacing.x = 0.0;
         let bound = !qymcad_ui_state::hotkey_key(wc.set, r.action).is_empty();
         if row_icon(ui, bound, ph::X).on_hover_text(crate::i18n::tr("hotkeys-clear")).clicked() {
             qymcad_ui_state::set_hotkey(wc.set, r.action, "");
             wc.hotkeys.clash = None;
         }
+        ui.add_space(ICON_GAP);
         // "restore the factory key" only where it really was changed
         let changed = wc.set.hotkeys.contains_key(r.action);
         let tip = crate::i18n::tr1("hotkeys-default-is", "key", &qymcad_ui_state::key_label(r.key));
-        // THE ROW ENDS `RESET_PAD` AFTER THE ICON, exactly: with no item spacing inside the scope, nothing but the pad
-        // stands between the icon and the end of the cell, and the cell is the last column of the table
-        let reset = ui.scope(|ui| {
-            ui.spacing_mut().item_spacing.x = 0.0;
-            let icon = row_icon(ui, changed, ph::ARROW_COUNTER_CLOCKWISE);
-            ui.add_space(RESET_PAD);
-            icon
-        });
-        if reset.inner.on_hover_text(tip).clicked() {
+        if row_icon(ui, changed, ph::ARROW_COUNTER_CLOCKWISE).on_hover_text(tip).clicked() {
             wc.set.hotkeys.remove(r.action);
             wc.hotkeys.clash = None;
         }
+        ui.add_space(RESET_PAD);
     });
 }
+
+/// The room between the clear icon and the reset icon.
+const ICON_GAP: f32 = 2.0;
 
 /// The room after the reset icon, the last thing in a row.
 const RESET_PAD: f32 = 1.0;
