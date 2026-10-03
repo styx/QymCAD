@@ -67,17 +67,21 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
         // came back at every start. The saved height, the one a person drags, is kept.
         ui.vertical(|ui| {
             ui.set_width(TABLE_W);
-            // laid out from the right: the reset button takes what it needs, the filter the rest - no guessed width
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if !wc.set.hotkeys.is_empty() && ui.button(crate::i18n::tr("hotkeys-reset-all")).clicked() {
-                    wc.set.hotkeys.clear();
-                    wc.hotkeys.note.clear();
-                    wc.hotkeys.clash = None;
-                }
-                let glass = ui.fonts_mut(|f| f.layout_no_wrap(ph::MAGNIFYING_GLASS.to_string(), egui::TextStyle::Body.resolve(ui.style()), egui::Color32::WHITE).size().x);
-                let field = (ui.available_width() - glass - ui.spacing().item_spacing.x).max(60.0);
-                ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width(field).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
-                ui.label(ph::MAGNIFYING_GLASS);
+            // laid out from the right: the reset button takes what it needs, the filter the rest - no guessed width.
+            // Inside a one-row `horizontal`: a right-to-left layout of its own would take the whole remaining height
+            // and centre the row in it.
+            ui.horizontal(|ui| {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if !wc.set.hotkeys.is_empty() && ui.button(crate::i18n::tr("hotkeys-reset-all")).clicked() {
+                        wc.set.hotkeys.clear();
+                        wc.hotkeys.note.clear();
+                        wc.hotkeys.clash = None;
+                    }
+                    let glass = ui.fonts_mut(|f| f.layout_no_wrap(ph::MAGNIFYING_GLASS.to_string(), egui::TextStyle::Body.resolve(ui.style()), egui::Color32::WHITE).size().x);
+                    let field = (ui.available_width() - glass - ui.spacing().item_spacing.x).max(60.0);
+                    ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width(field).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
+                    ui.label(ph::MAGNIFYING_GLASS);
+                });
             });
             ui.separator();
             let q = wc.hotkeys.filter.trim().to_lowercase();
