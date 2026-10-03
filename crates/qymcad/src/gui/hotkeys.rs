@@ -65,23 +65,26 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
         // THE WIDTH IS THE CONTAINER'S, the window wraps it - and is held to it: egui keeps a window's size between
         // runs and only ever grows it to the content, so a width saved while the window could still be dragged wider
         // came back at every start. The saved height, the one a person drags, is kept.
-        let cols = columns(wc.set, ui);
         ui.vertical(|ui| {
             ui.set_width(TABLE_W);
-            ui.horizontal(|ui| {
-                ui.label(ph::MAGNIFYING_GLASS);
-                let reset_w = if wc.set.hotkeys.is_empty() { 0.0 } else { 240.0 };
-                ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width((ui.available_width() - reset_w).max(120.0)).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
+            // laid out from the right: the reset button takes what it needs, the filter the rest - no guessed width
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if !wc.set.hotkeys.is_empty() && ui.button(crate::i18n::tr("hotkeys-reset-all")).clicked() {
                     wc.set.hotkeys.clear();
                     wc.hotkeys.note.clear();
                     wc.hotkeys.clash = None;
                 }
+                let glass = ui.fonts_mut(|f| f.layout_no_wrap(ph::MAGNIFYING_GLASS.to_string(), egui::TextStyle::Body.resolve(ui.style()), egui::Color32::WHITE).size().x);
+                let field = (ui.available_width() - glass - ui.spacing().item_spacing.x).max(60.0);
+                ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width(field).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
+                ui.label(ph::MAGNIFYING_GLASS);
             });
             ui.separator();
             let q = wc.hotkeys.filter.trim().to_lowercase();
             let mut shown = 0;
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                // measured inside the scroll area: whatever margin it keeps around its content is not the table's
+                let cols = columns(wc.set, ui, ui.available_width());
                 for area in AREAS {
                     let rows: Vec<&HotkeyRow> = HOTKEYS.iter().filter(|r| r.area == area && row_matches(wc.set, r, &q)).collect();
                     if rows.is_empty() {
@@ -128,6 +131,26 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
     capture_hotkey(wc, ctx);
 }
 
+/// WHETHER THE KEYBOARD IS THE REFERENCE WINDOW'S this frame - asked before the cancel ladder, which runs before
+/// anything is drawn.
+///
+/// While the window waits for a key, every press is the name of a binding. Otherwise Esc, with no field holding
+/// the keyboard, steps back through the window: an open clash question is answered "keep as it was", and then
+/// the window closes. The key is taken, so the ladder does not also clear the selection behind the window.
+pub(crate) fn hotkeys_take_keyboard(win: &mut qymcad_ui_state::Windows, hk: &mut qymcad_ui_state::HotkeyCapture, ctx: &egui::Context) -> bool {
+    if hk.action.is_some() {
+        return true;
+    }
+    if !win.is(WinKind::Hotkeys) || ctx.egui_wants_keyboard_input() || !ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
+        return false;
+    }
+    if hk.clash.take().is_none() {
+        win.set(WinKind::Hotkeys, false);
+        hk.note.clear();
+    }
+    true
+}
+
 /// WHETHER A ROW ANSWERS THE FILTER: by its description or by its key, either way round.
 fn row_matches(set: &qymcad_ui_state::Settings, r: &HotkeyRow, q: &str) -> bool {
     let key = qymcad_ui_state::hotkey_key(set, r.action);
@@ -157,7 +180,7 @@ struct Columns {
     what: f32,
 }
 
-fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui) -> Columns {
+fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui, table: f32) -> Columns {
     let body = egui::TextStyle::Body.resolve(ui.style());
     let mono = egui::TextStyle::Monospace.resolve(ui.style());
     let width = |text: String, font: &egui::FontId| ui.ctx().fonts_mut(|f| f.layout_no_wrap(text, font.clone(), egui::Color32::WHITE).size().x);
@@ -165,9 +188,9 @@ fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui) -> Columns {
     // the button also says "press a key" while it waits and "no key" when unbound
     let words = ["hotkeys-press", "hotkeys-unbound"].map(|k| width(crate::i18n::tr(k), &body) + pad);
     let key = HOTKEYS.iter().map(|r| width(qymcad_ui_state::key_label(&qymcad_ui_state::hotkey_key(set, r.action)), &mono) + pad).chain(words).fold(KEY_W, f32::max);
-    // the two row icons and the room after them
-    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x + TOOLS_PAD;
-    let what = (TABLE_W - key - tools - 2.0 * GRID_GAP).max(KEY_W);
+    // the two row icons, the gaps after each and the room at the end
+    let tools = 2.0 * ui.spacing().interact_size.y + 2.0 * ui.spacing().item_spacing.x + TOOLS_PAD;
+    let what = (table - key - tools - 2.0 * GRID_GAP).max(KEY_W);
     Columns { key, what }
 }
 
