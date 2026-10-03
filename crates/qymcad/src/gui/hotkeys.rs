@@ -145,13 +145,8 @@ const GRID_GAP: f32 = 14.0;
 /// The width of the table: the key, the description and the row icons.
 const TABLE_W: f32 = 540.0;
 
-/// EMPTY ROOM AFTER THE ROW ICONS: the floating scroll bar lies over the right edge of the table, and the reset
-/// icon, framed when hovered, ran into it. The room is the bar at rest - its width and the margin outside it - the
-/// part of the hover frame drawn outside the button, and 2 pt between them.
-fn tools_pad(ui: &egui::Ui) -> f32 {
-    let s = &ui.spacing().scroll;
-    s.bar_outer_margin + s.floating_width + ui.visuals().widgets.hovered.expansion + 2.0
-}
+/// Empty room after the row icons, so the reset icon, framed when hovered, does not touch the scroll bar.
+const TOOLS_PAD: f32 = 2.0;
 
 /// THE WIDTHS EVERY SECTION SHARES, fixed rather than left to each grid: the sections line up, and nothing that
 /// appears in a row - a reset icon, a clash under it - can widen a column a frame later.
@@ -171,7 +166,7 @@ fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui) -> Columns {
     let words = ["hotkeys-press", "hotkeys-unbound"].map(|k| width(crate::i18n::tr(k), &body) + pad);
     let key = HOTKEYS.iter().map(|r| width(qymcad_ui_state::key_label(&qymcad_ui_state::hotkey_key(set, r.action)), &mono) + pad).chain(words).fold(KEY_W, f32::max);
     // the two row icons and the room after them
-    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x + tools_pad(ui);
+    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x + TOOLS_PAD;
     let what = (TABLE_W - key - tools - 2.0 * GRID_GAP).max(KEY_W);
     Columns { key, what }
 }
@@ -304,7 +299,7 @@ fn row_tools(wc: &mut qymcad_ui_state::WinCtx, ui: &mut egui::Ui, r: &HotkeyRow)
             wc.set.hotkeys.remove(r.action);
             wc.hotkeys.clash = None;
         }
-        ui.add_space(tools_pad(ui));
+        ui.add_space(TOOLS_PAD);
     });
 }
 
