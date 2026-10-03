@@ -62,55 +62,58 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
     // than taken from the longest text: a long description or message wraps onto the next line instead of
     // stretching the window.
     egui::Window::new(crate::i18n::tr("hotkeys-title")).open(&mut open).resizable([false, true]).default_height(600.0).show(ctx, |ui| {
-        ui.set_width(WINDOW_W);
+        // THE WIDTH IS THE CONTAINER'S, the window wraps it
         let cols = columns(wc.set, ui);
-        ui.horizontal(|ui| {
-            ui.label(ph::MAGNIFYING_GLASS);
-            let reset_w = if wc.set.hotkeys.is_empty() { 0.0 } else { 240.0 };
-            ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width((ui.available_width() - reset_w).max(120.0)).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
-            if !wc.set.hotkeys.is_empty() && ui.button(crate::i18n::tr("hotkeys-reset-all")).clicked() {
-                wc.set.hotkeys.clear();
-                wc.hotkeys.note.clear();
-                wc.hotkeys.clash = None;
-            }
-        });
-        ui.separator();
-        let q = wc.hotkeys.filter.trim().to_lowercase();
-        let mut shown = 0;
-        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-            for area in AREAS {
-                let rows: Vec<&HotkeyRow> = HOTKEYS.iter().filter(|r| r.area == area && row_matches(wc.set, r, &q)).collect();
-                if rows.is_empty() {
-                    continue;
+        ui.vertical(|ui| {
+            ui.set_width(TABLE_W);
+            ui.horizontal(|ui| {
+                ui.label(ph::MAGNIFYING_GLASS);
+                let reset_w = if wc.set.hotkeys.is_empty() { 0.0 } else { 240.0 };
+                ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width((ui.available_width() - reset_w).max(120.0)).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
+                if !wc.set.hotkeys.is_empty() && ui.button(crate::i18n::tr("hotkeys-reset-all")).clicked() {
+                    wc.set.hotkeys.clear();
+                    wc.hotkeys.note.clear();
+                    wc.hotkeys.clash = None;
                 }
-                shown += rows.len();
-                area_header(wc, ui, area);
-                egui::Grid::new(format!("hk_{area}")).num_columns(3).min_col_width(0.0).spacing([GRID_GAP, 4.0]).striped(true).show(ui, |ui| {
-                    for r in rows {
-                        key_cell(wc, ui, r, cols.key);
-                        ui.scope(|ui| {
-                            ui.set_width(cols.what);
-                            ui.add(egui::Label::new(hotkey_what(r)).wrap());
-                        });
-                        row_tools(wc, ui, r);
-                        ui.end_row();
-                        row_status(wc, ui, r.action, cols.what);
-                    }
-                });
-                ui.add_space(10.0);
-            }
-            if shown == 0 {
-                ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr1("hotkeys-nothing", "q", wc.hotkeys.filter.trim())).weak()).wrap());
-            }
+            });
             ui.separator();
-            ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr("hotkeys-note")).weak().small()).wrap());
-            // THE FOCUS RULE GOES HERE AND NOT ONLY IN THE HELP. A caret in a field extinguishes
-            // bare letters (otherwise `w` in an expression would launch a command), and Alt is the
-            // only way to reach a tool from there. Not saying so in the hotkey reference means
-            // hiding half the rule: U is pressed in the length field, nothing happens, and the
-            // conclusion drawn is about the program.
-            ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr("hotkeys-alt-note")).weak().small()).wrap());
-            ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr("hotkeys-rebind-note")).weak().small()).wrap());
+            let q = wc.hotkeys.filter.trim().to_lowercase();
+            let mut shown = 0;
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                for area in AREAS {
+                    let rows: Vec<&HotkeyRow> = HOTKEYS.iter().filter(|r| r.area == area && row_matches(wc.set, r, &q)).collect();
+                    if rows.is_empty() {
+                        continue;
+                    }
+                    shown += rows.len();
+                    area_header(wc, ui, area);
+                    egui::Grid::new(format!("hk_{area}")).num_columns(3).min_col_width(0.0).spacing([GRID_GAP, 4.0]).striped(true).show(ui, |ui| {
+                        for r in rows {
+                            key_cell(wc, ui, r, cols.key);
+                            ui.scope(|ui| {
+                                ui.set_width(cols.what);
+                                ui.add(egui::Label::new(hotkey_what(r)).wrap());
+                            });
+                            row_tools(wc, ui, r);
+                            ui.end_row();
+                            row_status(wc, ui, r.action, cols.what);
+                        }
+                    });
+                    ui.add_space(10.0);
+                }
+                if shown == 0 {
+                    ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr1("hotkeys-nothing", "q", wc.hotkeys.filter.trim())).weak()).wrap());
+                }
+                ui.separator();
+                ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr("hotkeys-note")).weak().small()).wrap());
+                // THE FOCUS RULE GOES HERE AND NOT ONLY IN THE HELP. A caret in a field extinguishes
+                // bare letters (otherwise `w` in an expression would launch a command), and Alt is the
+                // only way to reach a tool from there. Not saying so in the hotkey reference means
+                // hiding half the rule: U is pressed in the length field, nothing happens, and the
+                // conclusion drawn is about the program.
+                ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr("hotkeys-alt-note")).weak().small()).wrap());
+                ui.add(egui::Label::new(egui::RichText::new(crate::i18n::tr("hotkeys-rebind-note")).weak().small()).wrap());
+            });
         });
     });
     if !open {
@@ -137,15 +140,18 @@ fn what_of(action: &str) -> String {
 /// The gap between the columns of the table.
 const GRID_GAP: f32 = 14.0;
 
-/// The width of the window's content.
-const WINDOW_W: f32 = 620.0;
+/// The width of the table: the key, the description and the row icons.
+const TABLE_W: f32 = 540.0;
+
+/// Empty room after the row icons: without it the reset icon, framed when hovered, touched the edge of the table.
+const TOOLS_PAD: f32 = 12.0;
 
 /// THE WIDTHS EVERY SECTION SHARES, fixed rather than left to each grid: the sections line up, and nothing that
 /// appears in a row - a reset icon, a clash under it - can widen a column a frame later.
 struct Columns {
     /// The key buttons: the widest key now bound or caption of the button, and never narrower than `KEY_W`.
     key: f32,
-    /// What is left of the window for the descriptions, which wrap inside it.
+    /// What is left of the table for the descriptions, which wrap inside it.
     what: f32,
 }
 
@@ -157,9 +163,9 @@ fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui) -> Columns {
     // the button also says "press a key" while it waits and "no key" when unbound
     let words = ["hotkeys-press", "hotkeys-unbound"].map(|k| width(crate::i18n::tr(k), &body) + pad);
     let key = HOTKEYS.iter().map(|r| width(qymcad_ui_state::key_label(&qymcad_ui_state::hotkey_key(set, r.action)), &mono) + pad).chain(words).fold(KEY_W, f32::max);
-    // the two row icons
-    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x;
-    let what = (WINDOW_W - key - tools - 2.0 * GRID_GAP - ui.spacing().scroll.allocated_width()).max(KEY_W);
+    // the two row icons and the room after them
+    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x + TOOLS_PAD;
+    let what = (TABLE_W - key - tools - 2.0 * GRID_GAP).max(KEY_W);
     Columns { key, what }
 }
 
@@ -291,6 +297,7 @@ fn row_tools(wc: &mut qymcad_ui_state::WinCtx, ui: &mut egui::Ui, r: &HotkeyRow)
             wc.set.hotkeys.remove(r.action);
             wc.hotkeys.clash = None;
         }
+        ui.add_space(TOOLS_PAD);
     });
 }
 
