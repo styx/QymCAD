@@ -61,14 +61,14 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
     // descriptions, while the height is what decides how much of the table is seen at once. The width is fixed rather
     // than taken from the longest text: a long description or message wraps onto the next line instead of
     // stretching the window.
-    // the window's size covers the title bar and the body WITH its margins; the table is the body's content
-    let width = TABLE_W + ctx.global_style().spacing.window_margin.sum().x;
-    egui::Window::new(crate::i18n::tr("hotkeys-title")).open(&mut open).resizable([false, true]).default_height(520.0).min_width(width).max_width(width).show(ctx, |ui| {
-        // THE WIDTH IS THE CONTAINER'S, the window wraps it - and is held to it: egui keeps a window's size between
-        // runs and only ever grows it to the content, so a width saved while the window could still be dragged wider
-        // came back at every start. The saved height, the one a person drags, is kept.
+    //
+    // THE WIDTH IS THE WINDOW'S, and everything inside takes what it leaves: the title bar and the body share the
+    // window's width, and content given a width of its own - 540 pt inside margins the window keeps - stood wider than
+    // the title bar. Held by min and max because egui keeps a window's size between runs and only ever grows it to
+    // the content: a width saved while the window could still be dragged wider came back at every start. The saved
+    // height, the one a person drags, is kept.
+    egui::Window::new(crate::i18n::tr("hotkeys-title")).open(&mut open).resizable([false, true]).default_height(520.0).min_width(WINDOW_W).max_width(WINDOW_W).show(ctx, |ui| {
         ui.vertical(|ui| {
-            ui.set_width(TABLE_W);
             // laid out from the right: the reset button takes what it needs, the filter the rest - no guessed width.
             // Inside a one-row `horizontal`: a right-to-left layout of its own would take the whole remaining height
             // and centre the row in it.
@@ -171,8 +171,8 @@ fn what_of(action: &str) -> String {
 /// The gap between the columns of the table.
 const GRID_GAP: f32 = 14.0;
 
-/// The width of the table: the key, the description and the row icons.
-const TABLE_W: f32 = 540.0;
+/// The width of the window, title bar and margins included.
+const WINDOW_W: f32 = 556.0;
 
 /// Empty room after the row icons, so the reset icon, framed when hovered, does not touch the scroll bar.
 const TOOLS_PAD: f32 = 2.0;
