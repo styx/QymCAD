@@ -340,7 +340,7 @@ fn row_tools(wc: &mut qymcad_ui_state::WinCtx, ui: &mut egui::Ui, r: &HotkeyRow)
 const ICON_GAP: f32 = 2.0;
 
 /// The room after the reset icon, the last thing in a row.
-const RESET_PAD: f32 = 2.0;
+const RESET_PAD: f32 = 4.0;
 
 /// A square icon button of one size for every row, framed under the pointer; hidden, it still holds its place.
 fn row_icon(ui: &mut egui::Ui, shown: bool, icon: &str) -> egui::Response {
