@@ -61,8 +61,10 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
     // descriptions, while the height is what decides how much of the table is seen at once. The width is fixed rather
     // than taken from the longest text: a long description or message wraps onto the next line instead of
     // stretching the window.
-    egui::Window::new(crate::i18n::tr("hotkeys-title")).open(&mut open).resizable([false, true]).default_height(520.0).show(ctx, |ui| {
-        // THE WIDTH IS THE CONTAINER'S, the window wraps it
+    egui::Window::new(crate::i18n::tr("hotkeys-title")).open(&mut open).resizable([false, true]).default_height(520.0).min_width(TABLE_W).max_width(TABLE_W).show(ctx, |ui| {
+        // THE WIDTH IS THE CONTAINER'S, the window wraps it - and is held to it: egui keeps a window's size between
+        // runs and only ever grows it to the content, so a width saved while the window could still be dragged wider
+        // came back at every start. The saved height, the one a person drags, is kept.
         let cols = columns(wc.set, ui);
         ui.vertical(|ui| {
             ui.set_width(TABLE_W);
