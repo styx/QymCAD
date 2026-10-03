@@ -138,7 +138,9 @@ mod tests {
         assert_eq!(keys_in_text_in("Ctrl+Shift+S saves as, Alt+U from a field", mac), "⇧⌘S saves as, ⌥U from a field");
         assert_eq!(keys_in_text_in("Ctrl combinations belong to the system", mac), "Ctrl combinations belong to the system", "a word about the key is not a key");
         assert_eq!(keys_in_text_in("C++ and 2+2", mac), "C++ and 2+2");
-        assert_eq!(keys_in_text_in("Скопировать (Ctrl+C)", mac), "Скопировать (⌘C)");
+        // a key after a word in another script: the Russian caption of the same command, read from the catalogue
+        let ru = crate::tr_in("ru", "act-copy-ctrl-c").expect("the Russian caption of Copy");
+        assert_eq!(keys_in_text_in(&ru, mac), ru.replace("Ctrl+C", "⌘C"));
     }
 
     #[test]
