@@ -80,8 +80,11 @@ pub(crate) fn hotkeys_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Conte
                         wc.hotkeys.clash = None;
                     }
                     let glass = ui.fonts_mut(|f| f.layout_no_wrap(ph::MAGNIFYING_GLASS.to_string(), egui::TextStyle::Body.resolve(ui.style()), egui::Color32::WHITE).size().x);
+                    // THE WHOLE FIELD, margins included: `desired_width` is the width of the text alone, and the field's
+                    // own margins on top of it pushed the row, and the body with it, past the title bar
                     let field = (ui.available_width() - glass - ui.spacing().item_spacing.x).max(60.0);
-                    ui.add(egui::TextEdit::singleline(&mut wc.hotkeys.filter).desired_width(field).hint_text(crate::i18n::tr("hotkeys-filter-hint")));
+                    let edit = egui::TextEdit::singleline(&mut wc.hotkeys.filter).hint_text(crate::i18n::tr("hotkeys-filter-hint"));
+                    ui.add_sized([field, ui.spacing().interact_size.y], edit);
                     ui.label(ph::MAGNIFYING_GLASS);
                 });
             });
