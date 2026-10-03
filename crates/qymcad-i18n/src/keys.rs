@@ -11,7 +11,7 @@
 pub enum KeyStyle {
     /// As stored: `Ctrl+Shift+W`.
     Plain,
-    /// A Mac with a font that has the symbols: `⇧⌘W`, in Apple's order (Option, Shift, Command).
+    /// A Mac with a font that has the symbols: `⇧⌘W`, in Apple's order (Control, Option, Shift, Command).
     MacSymbols,
     /// A Mac without that font: `Shift+Cmd+W`. Words rather than boxes where a glyph would be missing.
     MacWords,
@@ -47,7 +47,7 @@ pub fn key_label(stored: &str) -> String {
 ///
 /// It reads the text rather than a `Chord`, because the general rows are written as text (`Ctrl+Z / Ctrl+Y`)
 /// and must change with the rest. "Ctrl" in the stored form IS the command key (see `Chord`), so on a Mac it is
-/// ⌘; Alt is Option.
+/// ⌘; "Control" is the Mac's own Control key, ⌃; Alt is Option.
 pub fn key_label_in(stored: &str, style: KeyStyle) -> String {
     if style == KeyStyle::Plain {
         return stored.to_string();
@@ -57,16 +57,17 @@ pub fn key_label_in(stored: &str, style: KeyStyle) -> String {
         .map(|part| {
             let mut tokens: Vec<&str> = part.split('+').collect();
             let key = tokens.pop().unwrap_or("");
-            let (mut opt, mut shift, mut cmd, mut other) = (false, false, false, Vec::new());
+            let (mut control, mut opt, mut shift, mut cmd, mut other) = (false, false, false, false, Vec::new());
             for t in tokens {
                 match t {
+                    "Control" => control = true,
                     "Ctrl" => cmd = true,
                     "Shift" => shift = true,
                     "Alt" => opt = true,
                     _ => other.push(t),
                 }
             }
-            let mods = [(opt, "⌥", "Option"), (shift, "⇧", "Shift"), (cmd, "⌘", "Cmd")];
+            let mods = [(control, "⌃", "Control"), (opt, "⌥", "Option"), (shift, "⇧", "Shift"), (cmd, "⌘", "Cmd")];
             let mut out: String = other.iter().map(|t| format!("{t}+")).collect();
             for (on, symbol, word) in mods {
                 if on {
@@ -88,7 +89,7 @@ pub fn key_label_in(stored: &str, style: KeyStyle) -> String {
 
 
 /// THE KEYS INSIDE A SENTENCE, written the way this system writes them: "Copy (Ctrl+C)" is "Copy (⌘C)" on a
-/// Mac. A key is one or more of `Ctrl+`, `Shift+`, `Alt+` and then a key name (`C`, `Enter`, `F5`); the word
+/// Mac. A key is one or more of `Control+`, `Ctrl+`, `Shift+`, `Alt+` and then a key name (`C`, `Enter`, `F5`); the word
 /// "Ctrl" alone - "Ctrl combinations" - is a word about the key, not a key, and stays.
 pub fn keys_in_text(text: &str) -> String {
     keys_in_text_in(text, key_style())
@@ -99,7 +100,7 @@ pub fn keys_in_text_in(text: &str, style: KeyStyle) -> String {
     if style == KeyStyle::Plain || !text.contains('+') {
         return text.to_string();
     }
-    const MODS: [&str; 3] = ["Ctrl+", "Shift+", "Alt+"];
+    const MODS: [&str; 4] = ["Control+", "Ctrl+", "Shift+", "Alt+"];
     let mut out = String::with_capacity(text.len());
     let mut i = 0;
     while i < text.len() {
@@ -141,6 +142,16 @@ mod tests {
         // a key after a word in another script: the Russian caption of the same command, read from the catalogue
         let ru = crate::tr_in("ru", "act-copy-ctrl-c").expect("the Russian caption of Copy");
         assert_eq!(keys_in_text_in(&ru, mac), ru.replace("Ctrl+C", "⌘C"));
+    }
+
+    /// THE MAC'S CONTROL KEY IS ITS OWN MODIFIER, written first as Apple writes it, and never mixed up with Ctrl.
+    #[test]
+    fn a_mac_writes_its_control_key_apart_from_cmd() {
+        assert_eq!(key_label_in("Control+J", KeyStyle::MacSymbols), "⌃J");
+        assert_eq!(key_label_in("Control+Ctrl+Shift+J", KeyStyle::MacSymbols), "⌃⇧⌘J");
+        assert_eq!(key_label_in("Control+Shift+J", KeyStyle::MacWords), "Control+Shift+J");
+        assert_eq!(keys_in_text_in("press Control+A in a field", KeyStyle::MacSymbols), "press ⌃A in a field");
+        assert_eq!(key_label_in("Control+J", KeyStyle::Plain), "Control+J", "off a Mac the record reads as it is");
     }
 
     #[test]

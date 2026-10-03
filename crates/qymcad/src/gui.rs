@@ -644,9 +644,9 @@ pub(crate) fn install_fonts(ctx: &egui::Context) {
 /// The name of the BOLD font family. One place: family names spelled out separately drift apart and
 /// give a silent fallback to the default font — the text still draws, only not bold, and that is
 /// invisible to the eye in the code.
-/// ⌘ ⇧ ⌥ FOR THE KEYS OF A MAC, where people read keys as symbols and `Ctrl+W` names the wrong key.
+/// ⌃ ⌘ ⇧ ⌥ FOR THE KEYS OF A MAC, where people read keys as symbols and `Ctrl+W` names the wrong key.
 ///
-/// The fonts the program carries cannot draw them: ⌥ is in none of them, and ⇧ only in the monospace one, so
+/// The fonts the program carries cannot draw them: ⌥ and ⌃ are in none of them, and ⇧ only in the monospace one, so
 /// the symbols alone would be boxes. Every Mac has Apple Symbols, and it is taken from the system rather than
 /// carried - it is drawn on a Mac only. Second in each family, right after the main face: the emoji fonts
 /// further down have a ⌘ of a different look. Without the file the keys are written in words (`Shift+Cmd+W`).

@@ -203,18 +203,23 @@ mod tests {
         assert!(!repicking(&app), "Ctrl+U ran what is bound to a bare U");
     }
 
-    /// THE MAC'S CTRL KEY IS NOT CMD. In a field it walks the caret (Ctrl+A, Ctrl+E...), so a press holding it
-    /// runs neither the Ctrl chord nor the bare key. `ctrl` without `command` is exactly how egui reports it there.
+    /// THE MAC'S CONTROL KEY IS A MODIFIER OF ITS OWN, not Cmd and not nothing. `ctrl` without `command` is exactly
+    /// how egui reports it there: a Control+J press runs what is bound to Control+J - on a Mac, the only system with
+    /// that key - and neither the Cmd+J binding nor the bare J.
     #[test]
-    fn the_macs_ctrl_key_runs_nothing() {
-        let mac_ctrl = Modifiers { ctrl: true, ..Modifiers::NONE };
+    fn the_macs_control_key_is_its_own_modifier() {
+        let mac_control = Modifiers { ctrl: true, ..Modifiers::NONE };
         let mut app = extruding();
         app.set.hotkeys.insert("part.contour-reselect".into(), "Ctrl+J".into());
-        press(&mut app, Key::J, mac_ctrl, false);
-        assert!(!repicking(&app), "the Mac's Ctrl+J ran what is bound to Cmd+J");
+        press(&mut app, Key::J, mac_control, false);
+        assert!(!repicking(&app), "the Mac's Control+J ran what is bound to Cmd+J");
         let mut app = extruding();
-        press(&mut app, Key::U, mac_ctrl, false);
-        assert!(!repicking(&app), "the Mac's Ctrl+U ran what is bound to a bare U");
+        press(&mut app, Key::U, mac_control, false);
+        assert!(!repicking(&app), "the Mac's Control+U ran what is bound to a bare U");
+        let mut app = extruding();
+        app.set.hotkeys.insert("part.contour-reselect".into(), "Control+J".into());
+        press(&mut app, Key::J, mac_control, false);
+        assert_eq!(repicking(&app), cfg!(target_os = "macos"), "Control+J runs its binding on a Mac and nowhere else");
     }
 
     /// AN ACTION LEFT WITHOUT A KEY is not run by its factory key either.

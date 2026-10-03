@@ -146,7 +146,7 @@ mod tests {
     fn the_general_ctrl_letters_are_refused_with_shift_too() {
         let app = App::default();
         let ctrl_shift = Modifiers { shift: true, ..Modifiers::COMMAND };
-        for key in qymcad_ui_state::GENERAL_CTRL_KEYS {
+        for key in [Key::A, Key::C, Key::K, Key::S, Key::V, Key::X, Key::Y, Key::Z] {
             for mods in [Modifiers::COMMAND, ctrl_shift] {
                 assert_eq!(capture_outcome(&app.set, "part", "part.extrude", key, mods), Capture::Refused("hotkeys-reserved"), "{key:?} with {mods:?} went to a tool");
             }
@@ -162,7 +162,7 @@ mod tests {
         for os in [Os::Linux, Os::Windows] {
             for key in [Key::H, Key::U, Key::W] {
                 for shift in [false, true] {
-                    let chord = Chord { ctrl: true, shift, key };
+                    let chord = Chord { ctrl: true, shift, ..Chord::from(key) };
                     assert_eq!(hotkey_refusal_on(os, "part.extrude", &chord), Some("hotkeys-field-edits"), "{os:?}: {} went to a tool", chord.name());
                 }
             }
@@ -176,13 +176,13 @@ mod tests {
     #[test]
     fn on_a_mac_cmd_h_and_cmd_q_are_kept_and_the_field_letters_are_free() {
         use qymcad_ui_state::{hotkey_refusal_on, platform_keys::Os};
-        let cmd = |key| Chord { ctrl: true, shift: false, key };
+        let cmd = |key| Chord { ctrl: true, ..Chord::from(key) };
         assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &cmd(Key::H)), Some("hotkeys-os-hide"));
         assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &cmd(Key::Q)), Some("hotkeys-os-quit"));
         for key in [Key::U, Key::W] {
             assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &cmd(key)), None, "Cmd+{key:?} edits nothing on a Mac and was refused");
         }
-        assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &Chord { ctrl: true, shift: true, key: Key::H }), None, "Shift+Cmd+H is no menu item");
+        assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &Chord { ctrl: true, shift: true, ..Chord::from(Key::H) }), None, "Shift+Cmd+H is no menu item");
         // the General letters are the program's own on every system
         assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &cmd(Key::S)), Some("hotkeys-reserved"));
     }
@@ -194,20 +194,65 @@ mod tests {
         for os in Os::ALL {
             let t = platform_keys(os);
             assert_eq!(t.os, os, "{os:?} reads the table of {:?}", t.os);
-            for k in t.ctrl_kept {
+            for k in t.rows() {
+                assert!(Chord::parse(k.chord).is_some(), "{os:?}: the row {} is no chord and refuses nothing", k.chord);
                 assert_ne!(crate::i18n::tr(k.why), k.why, "{os:?}: the reason {} has no words", k.why);
             }
         }
     }
 
-    /// THE MAC'S CTRL KEY IS NOT RECORDED: a binding's Ctrl is Cmd there, and the dispatcher ignores the Ctrl key.
+    /// THE MAC'S CONTROL KEY IS RECORDED AS ITSELF: Control+J, written apart from Cmd+J, refused nowhere on a Mac but
+    /// the letters its field edits with, and refused on the systems that have no such key.
     #[test]
-    fn the_macs_ctrl_key_is_not_recorded() {
-        let app = App::default();
-        let mac_ctrl = Modifiers { ctrl: true, ..Modifiers::NONE };
-        assert_eq!(capture_outcome(&app.set, "part", "part.extrude", Key::J, mac_ctrl), Capture::Refused("hotkeys-use-cmd"));
-        let mac_cmd = Modifiers { mac_cmd: true, command: true, ..Modifiers::NONE };
-        assert_eq!(capture_outcome(&app.set, "part", "part.extrude", Key::J, mac_cmd), Capture::Bind("Ctrl+J".into()));
+    fn the_macs_control_key_is_recorded_as_itself() {
+        use qymcad_ui_state::{hotkey_refusal_on, platform_keys::Os};
+        let control = Chord::of_press(Modifiers { ctrl: true, ..Modifiers::NONE }, Key::J);
+        assert_eq!(control.name(), "Control+J");
+        let both = Chord::of_press(Modifiers { ctrl: true, mac_cmd: true, command: true, ..Modifiers::NONE }, Key::J);
+        assert_eq!(both.name(), "Control+Ctrl+J");
+        let cmd = Chord::of_press(Modifiers { mac_cmd: true, command: true, ..Modifiers::NONE }, Key::J);
+        assert_eq!(cmd.name(), "Ctrl+J");
+        // off a Mac the Ctrl key is the command key, and nothing else
+        assert_eq!(Chord::of_press(Modifiers::COMMAND, Key::J).name(), "Ctrl+J");
+        assert_eq!(Chord::parse("Control+Ctrl+J"), Some(both));
+        assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &control), None);
+        assert_eq!(hotkey_refusal_on(Os::Mac, "part.extrude", &both), None);
+        for os in [Os::Linux, Os::Windows] {
+            assert_eq!(hotkey_refusal_on(os, "part.extrude", &control), Some("hotkeys-mac-only"), "{os:?} has no Control key apart from Ctrl");
+        }
+    }
+
+    /// ON A MAC THE FIELD'S CONTROL LETTERS AND THE SYSTEM'S COMBINATIONS ARE KEPT, each as egui and macOS answer
+    /// them: the erasers with Shift too, the caret keys without it, the menu and system items exactly.
+    #[test]
+    fn on_a_mac_the_field_and_the_system_keep_their_combinations() {
+        use qymcad_ui_state::{hotkey_refusal_on, platform_keys::Os};
+        let on_mac = |s: &str| hotkey_refusal_on(Os::Mac, "part.extrude", &Chord::parse(s).expect(s));
+        for s in ["Control+H", "Control+Shift+W", "Control+Ctrl+U", "Control+A", "Control+N"] {
+            assert_eq!(on_mac(s), Some("hotkeys-mac-field-edits"), "{s} edits a field and went to a tool");
+        }
+        assert_eq!(on_mac("Control+Shift+A"), None, "Shift with Control+A moves no caret");
+        for s in ["Ctrl+Shift+3", "Ctrl+Shift+4", "Ctrl+Shift+5", "Ctrl+Shift+Q", "Control+Ctrl+Q", "Control+F3", "Control+F8"] {
+            assert_eq!(on_mac(s), Some("hotkeys-os-system"), "{s} belongs to macOS and went to a tool");
+        }
+        for s in ["Ctrl+3", "Ctrl+Shift+6", "Control+F9", "Control+J", "Control+Shift+F3"] {
+            assert_eq!(on_mac(s), None, "{s} is free on a Mac and was refused");
+        }
+    }
+
+    /// THE FACTORY LAYOUT IS UNIVERSAL: no factory key of a workbench is refused on any system. Its own action is
+    /// exempt from refusal, so this is asked of the tables directly.
+    #[test]
+    fn the_factory_keys_are_free_on_every_system() {
+        use qymcad_ui_state::platform_keys::{platform_keys, Os};
+        for os in Os::ALL {
+            for r in HOTKEYS.iter().filter(|r| rebindable(r.area)) {
+                let chord = Chord::parse(r.key).expect(r.key);
+                let why = platform_keys(os).refusal(&chord);
+                // bare X: the sketch's construction toggle is the General X itself
+                assert!(why.is_none() || r.key == "X", "{os:?}: the factory key {} of {} is refused ({why:?})", r.key, r.action);
+            }
+        }
     }
 
     /// THE GENERAL CTRL LETTERS ARE THE ONES ITS HANDLERS LISTEN TO. A shortcut added to the frame and forgotten
@@ -227,7 +272,8 @@ mod tests {
             }
         }
         heard.sort();
-        let mut listed: Vec<String> = qymcad_ui_state::GENERAL_CTRL_KEYS.iter().map(|k| k.name().to_string()).collect();
+        let mut listed: Vec<String> =
+            qymcad_ui_state::platform_keys::GENERAL.iter().filter_map(|k| Chord::parse(k.chord)).filter(|c| c.ctrl).map(|c| c.key.name().to_string()).collect();
         listed.sort();
         assert_eq!(heard, listed, "the Ctrl letters the frame handles and the ones refused to a tool have parted");
     }
@@ -307,7 +353,7 @@ mod tests {
     }
 
     /// ONLY THE LABEL CHANGES. Off a Mac it is the stored spelling as it is, and the symbols a Mac is given are
-    /// the three the program asks Apple Symbols for - nothing that would turn out a box.
+    /// the four the program asks Apple Symbols for - nothing that would turn out a box.
     #[test]
     fn off_a_mac_the_label_is_the_stored_spelling() {
         use qymcad_ui_state::{key_label_in, KeyStyle};
@@ -317,7 +363,7 @@ mod tests {
         }
         for r in HOTKEYS {
             let shown = key_label_in(r.key, KeyStyle::MacSymbols);
-            assert!(shown.chars().all(|c| c.is_ascii() || "⌘⇧⌥".contains(c)), "{} is shown on a Mac with a glyph no loaded font promises: {shown}", r.key);
+            assert!(shown.chars().all(|c| c.is_ascii() || "⌃⌘⇧⌥".contains(c)), "{} is shown on a Mac with a glyph no loaded font promises: {shown}", r.key);
         }
     }
 

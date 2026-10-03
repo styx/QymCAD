@@ -308,11 +308,7 @@ pub(super) fn capture_outcome(set: &qymcad_ui_state::Settings, area: &str, actio
     if mods.alt {
         return Capture::Refused("hotkeys-no-alt");
     }
-    // the Mac's Ctrl key without Cmd: the dispatcher never hears it (see `pressed_chord`), so it is not recorded
-    if mods.ctrl && !mods.command {
-        return Capture::Refused("hotkeys-use-cmd");
-    }
-    let chord = qymcad_ui_state::Chord { ctrl: mods.command, shift: mods.shift, key };
+    let chord = qymcad_ui_state::Chord::of_press(mods, key);
     if let Some(why) = qymcad_ui_state::hotkey_refusal(action, &chord) {
         return Capture::Refused(why);
     }

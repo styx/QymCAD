@@ -7329,13 +7329,17 @@ pub struct HotkeyClash {
     pub holder: &'static str,
 }
 
-/// A KEY WITH ITS MODIFIERS: `W`, `Shift+W`, `Ctrl+J`, `Ctrl+Shift+F5`.
+/// A KEY WITH ITS MODIFIERS: `W`, `Shift+W`, `Ctrl+J`, `Ctrl+Shift+F5`, `Control+J`.
 ///
-/// Ctrl stands for the platform's command key (Cmd on a Mac), as everywhere else in the program. ALT IS
-/// NOT A MODIFIER OF A BINDING: it is the way to reach a bare binding from inside a text field (Alt+U
-/// instead of U), and a chord that needed Alt would be unreachable exactly there.
+/// Ctrl stands for the platform's command key (Cmd on a Mac), as everywhere else in the program: the factory
+/// layout and a profile mean the same keys on every system. Control is the Mac's own Control key, a modifier of
+/// its own there; what each system refuses is in `platform_keys`. ALT IS NOT A MODIFIER OF A BINDING: it is the
+/// way to reach a bare binding from inside a text field (Alt+U instead of U), and a chord that needed Alt would be
+/// unreachable exactly there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Chord {
+    /// The Mac's Control key (never set elsewhere: off a Mac the Ctrl key is `ctrl`).
+    pub control: bool,
     pub ctrl: bool,
     pub shift: bool,
     pub key: egui::Key,
@@ -7343,15 +7347,22 @@ pub struct Chord {
 
 impl From<egui::Key> for Chord {
     fn from(key: egui::Key) -> Self {
-        Chord { ctrl: false, shift: false, key }
+        Chord { control: false, ctrl: false, shift: false, key }
     }
 }
 
 impl Chord {
+    /// THE CHORD OF A PRESS, Alt aside. egui reports the command key as `command` everywhere and the physical
+    /// Ctrl key as `ctrl`; off a Mac they are one key, on a Mac `command` is Cmd (`mac_cmd`) and `ctrl` is Control.
+    /// So Control is `ctrl` that is not the command key, or `ctrl` held beside Cmd.
+    pub fn of_press(mods: egui::Modifiers, key: egui::Key) -> Chord {
+        Chord { control: mods.ctrl && (mods.mac_cmd || !mods.command), ctrl: mods.command, shift: mods.shift, key }
+    }
+
     /// Reads the stored spelling. `None` for anything that is not a chord: an empty record (an unbound
     /// action), a description like `Ctrl+Z / Ctrl+Y`, a key egui does not know.
     pub fn parse(s: &str) -> Option<Chord> {
-        let mut c = Chord { ctrl: false, shift: false, key: egui::Key::Escape };
+        let mut c = Chord::from(egui::Key::Escape);
         let mut parts = s.split('+').map(str::trim).peekable();
         while let Some(p) = parts.next() {
             if parts.peek().is_none() {
@@ -7359,6 +7370,7 @@ impl Chord {
                 return Some(c);
             }
             match p {
+                "Control" => c.control = true,
                 "Ctrl" => c.ctrl = true,
                 "Shift" => c.shift = true,
                 _ => return None,
@@ -7370,6 +7382,9 @@ impl Chord {
     /// The stored and the shown spelling at once - one form, so a record reads the way the window shows it.
     pub fn name(&self) -> String {
         let mut s = String::new();
+        if self.control {
+            s.push_str("Control+");
+        }
         if self.ctrl {
             s.push_str("Ctrl+");
         }
@@ -7398,13 +7413,6 @@ impl Chord {
 // sentence ("Copy (Ctrl+C)") has to follow the system just like a key in the table.
 pub use qymcad_i18n::keys::{key_label, key_label_in, key_style, set_key_style, KeyStyle};
 
-/// THE LETTERS THE GENERAL AREA KEEPS UNDER CTRL in every workbench - WITH OR WITHOUT SHIFT: select all, the
-/// clipboard, the search, save, undo and redo. They are handled before any workbench hears a key, and their
-/// handlers ask for Ctrl and the letter without looking at Shift (Ctrl+Shift+Z is redo, Ctrl+Shift+S is "save
-/// as", and Ctrl+Shift+A selects all just the same), so a tool on either form would fire TOGETHER with them.
-/// The list is held to the handlers by a check that reads them.
-pub const GENERAL_CTRL_KEYS: [egui::Key; 8] = [egui::Key::A, egui::Key::C, egui::Key::K, egui::Key::S, egui::Key::V, egui::Key::X, egui::Key::Y, egui::Key::Z];
-
 /// WHY A CHORD CANNOT GO TO THIS ACTION on this system - a catalogue key, or `None` when it can.
 pub fn hotkey_refusal(action: &str, chord: &Chord) -> Option<&'static str> {
     hotkey_refusal_on(platform_keys::Os::current(), action, chord)
@@ -7418,14 +7426,9 @@ pub fn hotkey_refusal_on(os: platform_keys::Os, action: &str, chord: &Chord) -> 
     if !chord.bindable_key() {
         return Some("hotkeys-reserved");
     }
-    // what differs by system lives in its table (see `platform_keys`)
-    if let Some(why) = platform_keys::platform_keys(os).refusal(chord) {
-        return Some(why);
-    }
-    // bare X is the general construction toggle; Shift+X is free - that handler asks for no modifier at all
-    let general = if chord.ctrl { GENERAL_CTRL_KEYS.contains(&chord.key) } else { *chord == Chord::from(egui::Key::X) };
     let factory = HOTKEYS.iter().find(|r| r.action == action).is_some_and(|r| Chord::parse(r.key) == Some(*chord));
-    (general && !factory).then_some("hotkeys-reserved")
+    // everything else is the system's table (see `platform_keys`)
+    platform_keys::platform_keys(os).refusal(chord).filter(|_| !factory)
 }
 
 /// WHETHER THE KEY in this area is taken by somebody else - the name of the neighbouring action.
@@ -11252,12 +11255,11 @@ pub fn ring_drag_sign(axis_depth: f64) -> f64 {
 /// field types itself (expressions hold both `w` and `len`); Alt plus a letter types nothing, so it goes to the
 /// command. The rule is one: with no focus, the bare key; with focus, Alt.
 ///
-/// CHORDS: a Ctrl chord that can be bound types nothing in a field - the letters a field edits with under Ctrl
-/// are refused at binding (`platform_keys`) - so it is heard as it is, focus or not. Without Ctrl the rule
-/// above holds, Shift included: Shift+W in a field is a capital letter.
+/// CHORDS: a Ctrl or Control chord that can be bound types nothing in a field - the letters a field edits with
+/// under either are refused at binding (`platform_keys`) - so it is heard as it is, focus or not. Without them the
+/// rule above holds, Shift included: Shift+W in a field is a capital letter.
 ///
-/// "CTRL" IS THE COMMAND KEY: Cmd on a Mac. The Mac's own Ctrl key is no modifier of any binding - in a field
-/// it walks the caret (Ctrl+A, Ctrl+E, Ctrl+F...) - so a press holding it answers to nothing.
+/// "CTRL" IS THE COMMAND KEY: Cmd on a Mac. The Mac's own Control key is a modifier of its own (`Chord::of_press`).
 ///
 /// ANY BINDABLE KEY, NOT A FIXED LIST. Twenty-three letters were listed by hand in the handler, and a tool
 /// rebound to W or Z was saved, shown in the window, and never heard: the press did not reach the table.
@@ -11265,18 +11267,15 @@ pub fn pressed_chord(ctx: &egui::Context) -> Option<Chord> {
     // asked BEFORE `ctx.input`: inside it `wants_keyboard_input` deadlocks on the input lock
     let typing = ctx.egui_wants_keyboard_input();
     ctx.input(|i| {
-        // off a Mac `command` IS `ctrl`, so this is the Mac's Ctrl key held without Cmd
-        if i.modifiers.ctrl && !i.modifiers.command {
-            return None;
-        }
-        let ctrl = i.modifiers.command;
-        // Alt and Ctrl together reach nothing: Alt is the way out of a field, Ctrl does not need one
-        let ok = if typing { i.modifiers.alt != ctrl } else { !i.modifiers.alt };
+        let held = Chord::of_press(i.modifiers, egui::Key::Escape);
+        let chord_key = held.ctrl || held.control;
+        // Alt and Ctrl together reach nothing: Alt is the way out of a field, Ctrl and Control do not need one
+        let ok = if typing { i.modifiers.alt != chord_key } else { !i.modifiers.alt };
         if !ok {
             return None;
         }
         i.events.iter().find_map(|e| match e {
-            egui::Event::Key { key, pressed: true, repeat: false, .. } => Some(Chord { ctrl, shift: i.modifiers.shift, key: *key }),
+            egui::Event::Key { key, pressed: true, repeat: false, .. } => Some(Chord { key: *key, ..held }),
             _ => None,
         })
     })
