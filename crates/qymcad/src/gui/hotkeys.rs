@@ -194,8 +194,8 @@ fn columns(set: &qymcad_ui_state::Settings, ui: &egui::Ui, table: f32) -> Column
     // the button also says "press a key" while it waits and "no key" when unbound
     let words = ["hotkeys-press", "hotkeys-unbound"].map(|k| width(crate::i18n::tr(k), &body) + pad);
     let key = HOTKEYS.iter().map(|r| width(qymcad_ui_state::key_label(&qymcad_ui_state::hotkey_key(set, r.action)), &mono) + pad).chain(words).fold(KEY_W, f32::max);
-    // the two row icons and the gap between them
-    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x;
+    // the two row icons, the gap between them and the room after the reset icon
+    let tools = 2.0 * ui.spacing().interact_size.y + ui.spacing().item_spacing.x + RESET_PAD;
     let what = (table - key - tools - 2.0 * GRID_GAP).max(KEY_W);
     Columns { key, what }
 }
@@ -324,12 +324,23 @@ fn row_tools(wc: &mut qymcad_ui_state::WinCtx, ui: &mut egui::Ui, r: &HotkeyRow)
         // "restore the factory key" only where it really was changed
         let changed = wc.set.hotkeys.contains_key(r.action);
         let tip = crate::i18n::tr1("hotkeys-default-is", "key", &qymcad_ui_state::key_label(r.key));
-        if row_icon(ui, changed, ph::ARROW_COUNTER_CLOCKWISE).on_hover_text(tip).clicked() {
+        // THE ROW ENDS `RESET_PAD` AFTER THE ICON, exactly: with no item spacing inside the scope, nothing but the pad
+        // stands between the icon and the end of the cell, and the cell is the last column of the table
+        let reset = ui.scope(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            let icon = row_icon(ui, changed, ph::ARROW_COUNTER_CLOCKWISE);
+            ui.add_space(RESET_PAD);
+            icon
+        });
+        if reset.inner.on_hover_text(tip).clicked() {
             wc.set.hotkeys.remove(r.action);
             wc.hotkeys.clash = None;
         }
     });
 }
+
+/// The room after the reset icon, the last thing in a row.
+const RESET_PAD: f32 = 1.0;
 
 /// A square icon button of one size for every row, framed under the pointer; hidden, it still holds its place.
 fn row_icon(ui: &mut egui::Ui, shown: bool, icon: &str) -> egui::Response {
