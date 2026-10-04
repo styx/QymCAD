@@ -2090,7 +2090,7 @@ impl App {
         }
         // THE KEYBOARD IS THE REFERENCE WINDOW'S while it waits for a key to assign: the press is a
         // name for a binding there, not a command - Esc must not walk the cancel ladder, E must not extrude.
-        let capturing = self.hotkeys.action.is_some();
+        let capturing = hotkeys::hotkeys_take_keyboard(&mut self.win, &mut self.hotkeys, ctx);
         // Ctrl+S saves (silently into the current file, or a dialogue for a new one); Ctrl+Shift+S is "save as".
         if !choosing && !capturing && !ctx.egui_wants_keyboard_input() && ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
             if ctx.input(|i| i.modifiers.shift) {
