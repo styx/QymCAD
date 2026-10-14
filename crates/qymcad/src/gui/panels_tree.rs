@@ -235,3 +235,4 @@ mod build;
 pub(crate) use build::*;
 mod copy;
 pub(crate) use copy::*;
+mod a_renamed_body_keeps_its_name;

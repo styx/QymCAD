@@ -8,7 +8,7 @@ impl Project {
         if let Some(idx) = self.mesh_index(id) {
             self.bodies[idx].mesh = m;
         } else {
-            let name = format!("name-body#{}", self.bodies.len() + 1);
+            let name = self.new_body_name(id);
             self.bodies.push(Body { id, name, mesh: m, faces: Vec::new(), visible: true, sheet: false });
         }
     }

@@ -398,7 +398,7 @@ pub(crate) fn taken_line(pc: &qymcad_ui_state::PartCtx) -> Option<String> {
     } else if pc.armed.cmd_kind() == 33 && !pc.stitch_parts.is_empty() {
         Some(qymcad_i18n::tr1("cmd-taken-sheets", "n", &pc.stitch_parts.len().to_string()))
     } else if let (17 | 18, qymcad_ui_state::Sel::Mesh(mi)) = (pc.armed.cmd_kind(), *pc.sel) {
-        let name = pc.project.bodies.get(mi).map(|b| qymcad_i18n::name(&b.name)).unwrap_or_default();
+        let name = if mi < pc.project.bodies.len() { qymcad_i18n::name(&pc.project.mesh_name(mi)) } else { String::new() };
         Some(qymcad_i18n::tr1("cmd-taken-body", "name", &name))
     } else {
         None

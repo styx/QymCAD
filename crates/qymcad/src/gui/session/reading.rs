@@ -109,7 +109,7 @@ impl Session {
                     .sum();
                 let bounds = m.bounds();
                 Solid {
-                    name: named(&b.name),
+                    name: named(&p.mesh_name(i)),
                     part: comp_name(p.body_owner(b.id)),
                     part_key: p.body_owner(b.id),
                     colour: p.mesh_color(i),

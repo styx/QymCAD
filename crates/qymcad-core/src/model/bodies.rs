@@ -2,6 +2,14 @@
 
 use super::*;
 
+/// A piece of a node that makes several bodies out of one.
+struct Piece {
+    /// The body the node consumes.
+    source: Id,
+    /// The place of the piece among the bodies of the node, from 1.
+    place: usize,
+}
+
 impl Project {
     /// Add a regular polygon as a parametric group of entities: a construction circumscribed circle plus n
     /// side lines held by constraints (each vertex on the circle, equal sides, a radius dimension). The
@@ -37,14 +45,12 @@ impl Project {
 
     pub fn add_mesh(&mut self, m: crate::geom::Mesh) -> Id {
         let id = self.alloc_id();
-        let name = format!("name-body#{}", self.bodies.len() + 1);
+        let name = self.free_body_name();
         self.bodies.push(Body { id, name, mesh: m, faces: Vec::new(), visible: true, sheet: false });
         id
     }
 
     pub fn set_meshes(&mut self, ms: Vec<crate::geom::Mesh>) {
-        self.bodies.clear();
-        self.bodies.clear();
         self.bodies.clear();
         for m in ms {
             self.add_mesh(m);
@@ -201,15 +207,76 @@ impl Project {
         self.bodies.get(index).map(|b| b.id)
     }
 
-    /// Body name by index, falling back to a generated one.
+    /// Body name by index: the name held by its [`Self::name_root`], falling back to a generated one.
     pub fn mesh_name(&self, index: usize) -> String {
-        self.bodies.get(index).map(|b| b.name.clone()).filter(|s| !s.is_empty()).unwrap_or_else(|| format!("name-body#{}", index + 1))
+        self.bodies.get(index).map(|b| self.body_name(b.id, self.bodies.len())).unwrap_or_else(|| format!("name-body#{}", index + 1))
     }
 
+    /// Rename a body by index: the name goes onto the record of its [`Self::name_root`], so every body of that line
+    /// carries it - the ones built on it later, and its source shown again after the last feature is deleted.
     pub fn set_mesh_name(&mut self, index: usize, name: String) {
-        if let Some(b) = self.bodies.get_mut(index) {
-            b.name = name;
+        let Some(body) = self.mesh_id(index) else { return };
+        if let Some(i) = self.mesh_index(self.name_root(body)) {
+            self.bodies[i].name = name;
         }
+    }
+
+    /// THE BODY WHOSE RECORD HOLDS THE NAME OF `body`. A fillet, a shell or a cut consumes a body and makes a new id
+    /// for the same body, so the walk goes back through every node that makes one body out of another, the way a
+    /// colour is keyed by `lineage_root`. It stops at a node that makes several bodies: each piece of a split or of a
+    /// cut right through is named on its own record.
+    ///
+    /// Reported behaviour: Body 1 renamed to "Housing", a fillet of R2 added, and the tree showed "Body 2".
+    pub fn name_root(&self, body: Id) -> Id {
+        let mut b = body;
+        for _ in 0..self.timeline.len() {
+            match self.timeline.iter().find(|n| n.kind.bodies().contains(&b)).filter(|n| n.kind.bodies().len() == 1).and_then(|n| n.kind.consumed_body()) {
+                Some(src) => b = src,
+                None => break,
+            }
+        }
+        b
+    }
+
+    /// The piece `body` is of a node that makes several bodies out of one: the consumed body and the place of the
+    /// piece, from 1.
+    fn piece_of(&self, body: Id) -> Option<Piece> {
+        let node = self.timeline.iter().find(|n| n.kind.bodies().contains(&body))?;
+        let bodies = node.kind.bodies();
+        if bodies.len() < 2 {
+            return None;
+        }
+        Some(Piece { source: node.kind.consumed_body()?, place: bodies.iter().position(|&b| b == body)? + 1 })
+    }
+
+    /// The name of `body`: the one its name root holds, and for a piece not renamed on its own the name of the body it
+    /// was cut from with the place of the piece, "Housing (2)". `depth` bounds the walk over pieces of pieces.
+    fn body_name(&self, body: Id, depth: usize) -> String {
+        let root = self.name_root(body);
+        if let Some(own) = self.mesh_index(root).map(|i| &self.bodies[i].name).filter(|s| !s.is_empty()) {
+            return own.clone();
+        }
+        match self.piece_of(root).filter(|_| depth > 0) {
+            Some(Piece { source, place }) => format!("{} ({place})", self.body_name(source, depth - 1)),
+            None => self.free_body_name(),
+        }
+    }
+
+    /// The name a new record for `body` is made with: empty for a body named through another record (see
+    /// [`Self::name_root`]) and for a piece, which takes the name of its source; a free generated name otherwise.
+    pub(crate) fn new_body_name(&self, body: Id) -> String {
+        if self.name_root(body) != body || self.piece_of(body).is_some() {
+            return String::new();
+        }
+        self.free_body_name()
+    }
+
+    /// The lowest "Body N" no record holds. Counting the records numbered a body by every id its history made: a
+    /// shell on Body 1 gave Body 2, and the first body of a second part was Body 3.
+    fn free_body_name(&self) -> String {
+        let taken = |n: usize| self.bodies.iter().any(|b| b.name == format!("name-body#{n}"));
+        let n = (1..=self.bodies.len() + 1).find(|&n| !taken(n)).unwrap_or(self.bodies.len() + 1);
+        format!("name-body#{n}")
     }
 
     /// Id of the first mesh, used as the default target when creating a 3D operation.
@@ -237,7 +304,7 @@ impl Project {
                 self.bodies[i].id = self.alloc_id();
             }
             if self.bodies[i].name.is_empty() {
-                self.bodies[i].name = format!("name-body#{}", i + 1);
+                self.bodies[i].name = self.new_body_name(self.bodies[i].id);
             }
         }
         // Colours are no longer a parallel array to the meshes: manual ones live in `part_colors` keyed by
