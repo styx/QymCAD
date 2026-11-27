@@ -74,6 +74,9 @@ pub(crate) fn entry(tool: &Tool) {
             }
         }
     }
+    if let Some(again) = key_again(tool) {
+        problems.extend(walk_by_key_again(tool, &again).err());
+    }
     let mut s = tool.fixture.start();
     enter(&mut s, &tool.other.0);
     take(&mut s, tool);
@@ -84,6 +87,59 @@ pub(crate) fn entry(tool: &Tool) {
         problems.push(format!("taken over {other:?}, the bar says {bar:?}"));
     }
     assert!(problems.is_empty(), "{}: taking the tool:\n{}", tool.id, problems.join("\n"));
+}
+
+/// THE KEY OF A DRAWING TOOL PRESSED AGAIN under "Cycles through its modes", and the mode it takes: the second of the
+/// first group of the bar. Read off the tool - a drawing tool taken by a bare key whose bar has modes to walk - rather
+/// than declared as a way to take it: pressed again, the key takes no tool, it moves the one in hand on.
+pub(crate) struct KeyAgain {
+    key: Key,
+    mode: &'static crate::contract::Mode,
+}
+
+pub(crate) fn key_again(tool: &Tool) -> Option<KeyAgain> {
+    if !matches!(tool.flow, Flow::Drawing(..)) {
+        return None;
+    }
+    let key = tool.entries.iter().find_map(|e| match e {
+        Entry::Key(m, k) if *m == Modifiers::NONE => Some(*k),
+        _ => None,
+    })?;
+    let mode = tool.modes.first().and_then(|g| g.get(1))?;
+    Some(KeyAgain { key, mode })
+}
+
+/// "CYCLES THROUGH ITS MODES" chosen in Settings -> Keyboard, the key of the tool pressed twice, and the drawing made in
+/// the mode it took judged as the bar's own mode is (`judge_mode`).
+fn walk_by_key_again(tool: &Tool, again: &KeyAgain) -> Result<(), String> {
+    let mut s = tool.fixture.start();
+    preselect(&mut s, tool);
+    enter(&mut s, &Entry::Section { menu: &["menu-windows", "menu-settings"], section: "settings-sec-keyboard" });
+    let (cycles, title) = (s.word("settings-again-cycles"), s.word("win-settings"));
+    s.press_word(&cycles);
+    s.close_window(&title);
+    s.chord(Modifiers::NONE, again.key).chord(Modifiers::NONE, again.key);
+    judge_mode(&mut s, tool, again.mode).map_err(|e| format!("the key {:?} pressed twice to take the next mode, {}: {e}", again.key, again.mode.word))
+}
+
+/// THE WORK OF `mode`: its clicks, and the fields asked for after them, typed and entered.
+fn work_of_mode(s: &mut Session, tool: &Tool, mode: &crate::contract::Mode) {
+    work(s, tool, mode.clicks);
+    for f in tool.fields.iter().filter(|f| f.when == When::After) {
+        if field_if_there(s, f).is_some() {
+            type_into_field(s, f, &fmt(f.typical));
+            enter_key(s);
+        }
+    }
+}
+
+/// THE WORK OF `mode` DONE (`work_of_mode`) AND JUDGED by the outcome it is described to make.
+fn judge_mode(s: &mut Session, tool: &Tool, mode: &crate::contract::Mode) -> Result<(), String> {
+    work_of_mode(s, tool, mode);
+    match &mode.outcome {
+        Some(want) => matches(s, want),
+        None => Err("the mode makes nothing to judge it by".to_string()),
+    }
 }
 
 /// Where the button of `e` stands before anything is taken: found on a fresh fixture.
@@ -102,6 +158,7 @@ pub(crate) fn describe(e: &Entry) -> String {
         Entry::Search(n) => format!("the command search for {n}"),
         Entry::SearchByArticle => "the command search by the title of its article".to_string(),
         Entry::Menu(p) => format!("the menu {p:?}"),
+        Entry::Section { menu, section } => format!("the menu {menu:?}, then the section {section}"),
         Entry::Label(w) => format!("the label {w}"),
     }
 }
@@ -136,13 +193,7 @@ pub(crate) fn bar(tool: &Tool) {
         take(&mut s, tool);
         let (word, status, before) = (mode_word(&s, mode), s.status(), shape_of(&s.document()));
         press_switch(&mut s, &word);
-        work(&mut s, tool, mode.clicks);
-        for f in tool.fields.iter().filter(|f| f.when == When::After) {
-            if field_if_there(&mut s, f).is_some() {
-                type_into_field(&mut s, f, &fmt(f.typical));
-                enter_key(&mut s);
-            }
-        }
+        work_of_mode(&mut s, tool, mode);
         let doc = s.document();
         match &mode.outcome {
             Some(want) => {

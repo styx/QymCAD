@@ -654,8 +654,8 @@ pub(crate) fn plane_props(pr: &mut qymcad_ui_state::PropsCtx, ui: &mut egui::Ui,
         });
         let nl = (p.normal[0].powi(2) + p.normal[1].powi(2) + p.normal[2].powi(2)).sqrt();
         if nl > 1e-6 {
-            for k in 0..3 {
-                p.normal[k] /= nl;
+            for c in &mut p.normal {
+                *c /= nl;
             }
         }
         ui.separator();

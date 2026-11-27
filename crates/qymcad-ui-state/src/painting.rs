@@ -18,6 +18,12 @@ pub fn end_of_bar<R>(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui) -> R) ->
 /// settings.
 pub const AT_GEOMETRY: egui::Order = egui::Order::Middle;
 
+/// AN AREA AT THE GEOMETRY, on the layer of the windows. It is no window (`qymcad_shell::front_window`), so a box raised
+/// over the settings does not take Esc from them.
+pub fn at_geometry(id: egui::Id) -> egui::Area {
+    egui::Area::new(id).order(AT_GEOMETRY)
+}
+
 /// WHAT A BOX OF FIELDS AT THE GEOMETRY HOLDS: the names of its fields are captions, not text to select - a drag
 /// across them to reach a field selected the name instead.
 pub fn at_geometry_ui(ui: &mut egui::Ui) {

@@ -264,7 +264,8 @@ fn an_edge_shared_by_three_triangles_is_counted_not_guessed() {
     let tris = [[a, b, p(5., 5., 0.)], [b, a, p(5., -5., 0.)], [a, b, p(5., 0., 5.)]];
     let p = prepared(&tris);
     assert_eq!(p.non_manifold, 1);
-    for t in 0..3 {
-        assert!(p.neighbours[t].iter().all(|&u| u == NO_NEIGHBOUR), "triangle {t}: {:?}", p.neighbours[t]);
+    assert_eq!(p.neighbours.len(), 3);
+    for (t, n) in p.neighbours.iter().enumerate() {
+        assert!(n.iter().all(|&u| u == NO_NEIGHBOUR), "triangle {t}: {n:?}");
     }
 }

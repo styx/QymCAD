@@ -7,6 +7,22 @@
 
 use super::*;
 
+/// Which save a key asked for.
+pub(crate) enum SaveKey {
+    /// Ctrl+S: into the current file, or a dialogue for a new one.
+    Here,
+    /// Ctrl+Shift+S.
+    As,
+}
+
+/// THE SAVE KEYS of this frame; none while a field holds the keyboard.
+pub(crate) fn save_key(ctx: &egui::Context) -> Option<SaveKey> {
+    if ctx.egui_wants_keyboard_input() || !ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
+        return None;
+    }
+    Some(if ctx.input(|i| i.modifiers.shift) { SaveKey::As } else { SaveKey::Here })
+}
+
 impl App {
     /// THE KEYBOARD COMMANDS OF A FRAME: Enter, U, Ctrl+Enter, Esc, Delete, Ctrl+A.
     ///
@@ -150,9 +166,6 @@ impl App {
     /// editing, dimensions and constraints; a Part gives features and primitives; an Assembly gives components
     /// and mates. The hotkeys are repeated in the tooltips of the buttons.
     pub(super) fn handle_tool_hotkeys(&mut self, ctx: &egui::Context) {
-        if self.hotkeys.action.is_some() {
-            return; // the reference window is waiting for a key to ASSIGN, not to run
-        }
         // which press a tool key answers to (bare, Alt from a field, Ctrl always) is decided by `pressed_chord`
         let Some(key) = qymcad_ui_state::pressed_chord(ctx) else { return };
         let mut asks = Vec::new();

@@ -187,10 +187,12 @@ pub(in crate::gui) mod tests {
         /// A part of the window by its name, and how it is drawn.
         struct Surface {
             name: &'static str,
+            /// The clicks through the interface that bring it on screen, before it is drawn.
+            open: fn(&mut App),
             draw: fn(&mut App, &mut egui::Ui),
         }
         fn surface(name: &'static str, draw: fn(&mut App, &mut egui::Ui)) -> Surface {
-            Surface { name, draw }
+            Surface { name, open: |_| {}, draw }
         }
         let surfaces: &[Surface] = &[
             surface("tree", |a, c| a.tree_panel(c)),
@@ -238,7 +240,7 @@ pub(in crate::gui) mod tests {
                 crate::gui::panels_windows::parts_library_window(&mut a.win_ctx(&mut asks), c);
                 a.do_win_asks(asks, c);
             }),
-            surface("hotkeys", |a, c| a.hotkeys_window(c)),
+            Surface { name: "keyboard settings", open: crate::gui::hotkeys::open_keyboard_settings, draw: |a, c| crate::gui::hotkeys::draw_settings(a, c) },
             surface("about", |a, c| crate::gui::panels_windows::about_dialog(&mut a.win, &a.scheme, c)),
             // THE OTHER FIVE WINDOWS. They were absent, so an untranslated key in any of them reached the
             // screen with nothing to say so - and this is the check whose whole job is to notice that.
@@ -266,13 +268,13 @@ pub(in crate::gui) mod tests {
         let mut per_surface: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
         for code in ["ru", "en"] {
             i18n::set_language(code);
-            for Surface { name, draw } in surfaces {
+            for Surface { name, open, draw } in surfaces {
                 let mut app = populated();
+                open(&mut app);
                 // windows are drawn only when open, and CAM only with the module switched on
                 app.win.open(WinKind::Settings);
                 app.win.open(WinKind::Params);
                 app.win.open(WinKind::PartsLibrary);
-                app.win.open(WinKind::Hotkeys);
                 app.win.open(WinKind::About);
                 app.win.open(WinKind::DocProps);
                 app.win.open(WinKind::SaveTemplate);

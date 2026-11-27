@@ -1037,6 +1037,7 @@ pub enum BarAsk {
     ToggleSketchPick,
     /// Put the sketch tools down and go back to picking with the arrow.
     SketchSelectMode,
+    NextWay(SketchShape),
     /// Apply a sketch constraint by its code.
     Constraint(crate::ConstraintKind),
     /// The assembly picks.
@@ -1084,7 +1085,7 @@ pub struct WinCtx<'a> {
     /// Whether a file chooser is open right now. The window only ASKS about it: the chooser itself lives
     /// in the application, and the navigation question must not act while one is up.
     pub file_ask_open: bool,
-    /// The hotkey window's own state while it waits for a press.
+    /// The state of the table of keys in Settings -> Keyboard: the key waited for, a refusal, a clash, the filter.
     pub hotkeys: &'a mut HotkeyCapture,
     /// WHICH WORKBENCH IS CURRENT. Read only: the command search puts its own commands first and marks the
     /// rest. Changing the workbench is the application's business and goes out as a request.

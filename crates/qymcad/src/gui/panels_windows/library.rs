@@ -12,9 +12,11 @@ pub(crate) fn parts_library_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui:
     let mut open = wc.win.is(WinKind::PartsLibrary);
     let mut to_insert: Option<crate::parts_library::PartSource> = None;
     let mut rescan = false;
-    egui::Window::new(format!("{} {}", ph::PACKAGE, crate::i18n::tr("win-parts-library"))).id(egui::Id::new("win_parts_library")).open(&mut open).default_width(640.0).default_height(440.0).show(
-        ctx,
-        |ui| {
+    qymcad_shell::window(format!("{} {}", ph::PACKAGE, crate::i18n::tr("win-parts-library")), qymcad_ui_state::WinKind::PartsLibrary.id(), ctx)
+        .open(&mut open)
+        .default_width(640.0)
+        .default_height(440.0)
+        .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.button(format!("{} {}", ph::ARROWS_CLOCKWISE, crate::i18n::tr("win-refresh"))).on_hover_text(crate::i18n::tr("pl-rescan")).clicked() {
                     rescan = true;
@@ -99,8 +101,7 @@ pub(crate) fn parts_library_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui:
                     }
                 });
             });
-        },
-    );
+        });
     // The tree is put back (or rebuilt when Refresh was pressed).
     if rescan {
         wc.parts.tree = Some(crate::parts_library::load_library_tree());

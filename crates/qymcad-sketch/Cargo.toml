@@ -16,7 +16,6 @@ egui-phosphor = "0.13"
 qymcad-core = { path = "../qymcad-core" }
 qymcad-ui-state = { path = "../qymcad-ui-state" }
 qymcad-pick = { path = "../qymcad-pick" }
-qymcad-render = { path = "../qymcad-render" }
 qymcad-i18n = { path = "../qymcad-i18n" }
 
 [dev-dependencies]

@@ -68,7 +68,6 @@ license = "AGPL-3.0-or-later"
 # exactly that. The address is the public repository, not the one work happens in.
 repository = "https://github.com/QymIs-Tech/QymCAD"
 homepage = "https://cad.qymis.tech"
-readme = "README.md"
 
 [workspace.dependencies]
 # --- internal crates ---

@@ -190,6 +190,8 @@ pub(crate) const WINDOWS: &str = concat!(
     file_break!(),
     include_str!("hotkeys.rs"),
     file_break!(),
+    include_str!("panels_windows/front.rs"),
+    file_break!(),
     include_str!("report_problem.rs"),
     file_break!(),
     include_str!("file_ask.rs"),
@@ -633,7 +635,7 @@ mod tests {
             // that another check can reuse its helpers) is still a test module, and reading it as production
             // reported the door that opens files as an unread panel.
             let prod = ["#[cfg(test)]\nmod ", "#[cfg(test)]\npub(crate) mod ", "#[cfg(test)]\npub(super) mod "].iter().fold(text.as_str(), |t, cut| t.split(cut).next().unwrap_or(""));
-            let draws = prod.contains("ui: &mut egui::Ui") || prod.contains("egui::Window::new") || prod.contains("ctx: &egui::Context");
+            let draws = prod.contains("ui: &mut egui::Ui") || prod.contains("qymcad_shell::window(") || prod.contains("ctx: &egui::Context");
             if !draws {
                 continue;
             }

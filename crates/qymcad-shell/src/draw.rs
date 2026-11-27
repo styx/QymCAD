@@ -56,6 +56,56 @@ struct LaidOver {
     rect: egui::Rect,
 }
 
+/// THE ROOM FOR WINDOWS: the screen below the menus, as the last frame laid them out. egui places a window with no
+/// place of its own 16 points in from the corner of the rect it is held to, the whole screen by default - over the menu
+/// bar, where the grab of its corner took the click meant for "File". A window held to this room opens below the bar
+/// and is not dragged over it.
+fn room_for_windows(ctx: &egui::Context) -> egui::Rect {
+    let screen = ctx.content_rect();
+    let below = ctx.data(|d| d.get_temp::<f32>(menus_id())).unwrap_or(screen.min.y).clamp(screen.min.y, screen.max.y);
+    egui::Rect::from_min_max(egui::pos2(screen.min.x, below), screen.max)
+}
+
+/// A WINDOW OF THE PROGRAM: the one way one is opened. `egui::Window::new` is refused by clippy everywhere but this
+/// crate (`disallowed-methods` in the workspace `clippy.toml`).
+///
+/// It gets an identity of its own: without one egui takes it from the title (`Id::new(title.text())`, egui 0.35
+/// `containers/window.rs:103`) and keeps the place, size and folding of the window under it, in memory and on disk. A
+/// title is translated, so the window was a different one in every language, placed anew when the language changed.
+///
+/// It is held to the room below the menus (`room_for_windows`), and written down as a window (`front_window`).
+pub fn window<'open>(title: impl Into<egui::WidgetText>, id: egui::Id, ctx: &egui::Context) -> egui::Window<'open> {
+    ctx.data_mut(|d| d.get_temp_mut_or_default::<Windows>(windows_id()).0.insert(id));
+    egui::Window::new(title).id(id).constrain_to(room_for_windows(ctx))
+}
+
+/// THE WINDOW IN FRONT: the topmost of the windows `window` opened that the last frame drew, standing on its own.
+///
+/// A window is known by being written down where it is opened, not by being on the windows' layer: a box of fields at
+/// the geometry, the words of a tool and a bar over the view share that layer and are raised on it as they appear, and
+/// counted as windows they took Esc from the settings by which of the two had appeared last. A window closed keeps its
+/// place at the top of the order until another is raised; only the drawn ones count.
+pub fn front_window(ctx: &egui::Context) -> Option<egui::Id> {
+    let windows = ctx.data(|d| d.get_temp::<Windows>(windows_id())).unwrap_or_default();
+    ctx.memory(|m| {
+        let areas = m.areas();
+        m.layer_ids().filter(|l| l.order == egui::Order::Middle && windows.0.contains(&l.id) && areas.is_visible(l) && areas.parent_layer(*l).is_none()).last().map(|l| l.id)
+    })
+}
+
+/// The windows opened by `window`. Their ids are each window's own, so the record does not grow with the frames.
+#[derive(Clone, Default)]
+struct Windows(std::collections::HashSet<egui::Id>);
+
+fn windows_id() -> egui::Id {
+    egui::Id::new("the windows of the program")
+}
+
+/// Where the bottom of the menus is kept from one frame to the next.
+fn menus_id() -> egui::Id {
+    egui::Id::new("the bottom of the menus")
+}
+
 /// Where the panels laid over the view are kept from one frame to the next.
 fn over_id() -> egui::Id {
     egui::Id::new("the panels laid over the view")
@@ -93,6 +143,7 @@ pub(crate) fn run_slot(shell: &Shell, slot: Slot, ui: &mut egui::Ui, host: &mut 
                 if host.live(p.key) {
                     let r = egui::Panel::top(p.key).show(ui, |ui| host.fill(p.key, ui, None));
                     note(ui.ctx(), p.key, r.response.rect);
+                    ui.ctx().data_mut(|d| d.insert_temp(menus_id(), r.response.rect.max.y));
                 }
             }
         }

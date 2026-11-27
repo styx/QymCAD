@@ -337,3 +337,18 @@ pub(crate) fn rank_device_type(t: eframe::wgpu::DeviceType) -> u8 {
         DeviceType::Cpu => 1,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    /// The glow renderer is part of the build, so switching `renderer` in `run` to it is a one-word change.
+    ///
+    /// eframe 0.35 leaves glow out of its default features. It reached the build only through another
+    /// crate of the workspace that named it; when that crate dropped eframe, the fallback promised by the
+    /// comments at `renderer` and in the manifest went with it, and nothing failed. This names the variant,
+    /// so a build without the feature does not compile.
+    #[test]
+    fn the_glow_fallback_is_compiled_in() {
+        let options = eframe::NativeOptions { renderer: eframe::Renderer::Glow, ..Default::default() };
+        assert_eq!(options.renderer, eframe::Renderer::Glow);
+    }
+}

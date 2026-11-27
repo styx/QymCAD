@@ -297,6 +297,18 @@ mod tests {
         })
     }
 
+    /// THE SETTINGS WINDOW OPEN ON `section`, 900 points wide and `h` tall.
+    fn settings_shot(section: crate::gui::settings_sections::SettingsSection, h: usize) -> ColorImage {
+        let mut app = App::default();
+        app.win.open(WinKind::Settings);
+        app.scheme.section = section;
+        shot_panel(&mut app, 900, h, |a, ui| {
+            let mut asks = Vec::new();
+            crate::gui::panels_windows::settings_window(&mut a.win_ctx(&mut asks), ui.ctx());
+            a.do_win_asks(asks, ui.ctx());
+        })
+    }
+
     /// REDRAW THE PICTURES OF THE HELP. Run by hand - a test must not write into the repository on every
     /// run: it would then not be checking anything but changing it.
     ///
@@ -1060,16 +1072,7 @@ mod tests {
         }
 
         // THE SETTINGS - with the sections on the left and the search above them.
-        {
-            let mut app = App::default();
-            app.win.open(WinKind::Settings);
-            let img = shot_panel(&mut app, 900, 560, |a, ui| {
-                let mut asks = Vec::new();
-                crate::gui::panels_windows::settings_window(&mut a.win_ctx(&mut asks), ui.ctx());
-                a.do_win_asks(asks, ui.ctx());
-            });
-            save("settings.png", &img);
-        }
+        save("settings.png", &settings_shot(App::default().scheme.section, 560));
 
         // A SCHEME THAT PAINTS THE WHOLE PROGRAM - a shot of THE WHOLE WINDOW rather than of a panel.
         //
@@ -1129,13 +1132,8 @@ mod tests {
             save(&format!("scheme-{id}.png"), &img);
         }
 
-        // THE HOTKEYS - the whole reference, the same one assembled from a single source.
-        {
-            let mut app = App::default();
-            app.win.open(WinKind::Hotkeys);
-            let img = shot_panel(&mut app, 720, 640, |a, ui| a.hotkeys_window(ui.ctx()));
-            save("hotkeys.png", &img);
-        }
+        // THE HOTKEYS - Settings -> Keyboard as a person opens it: the choice of a key pressed again above the table.
+        save("hotkeys.png", &settings_shot(crate::gui::settings_sections::SettingsSection::Keyboard, 640));
 
         // THE DOCUMENT PROPERTIES - what travels along with the file.
         {

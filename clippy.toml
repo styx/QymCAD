@@ -1,0 +1,5 @@
+# A window is opened by `qymcad_shell::window`, which gives it an identity no language changes and holds it below the
+# menus. `crates/qymcad-shell/clippy.toml` leaves this out for the one crate that opens it.
+disallowed-methods = [
+    { path = "egui::Window::new", reason = "open a window with `qymcad_shell::window(title, id, ctx)`" },
+]

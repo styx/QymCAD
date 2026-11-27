@@ -118,11 +118,7 @@ pub fn has_zalgo(text: &str) -> bool {
         }
     }
 
-    if total_chars >= 4 && total_combining * 3 > total_chars {
-        return true;
-    }
-
-    false
+    total_chars >= 4 && total_combining * 3 > total_chars
 }
 
 /// Metadata describing an icon pack bundle.

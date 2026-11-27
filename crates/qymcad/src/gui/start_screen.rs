@@ -56,8 +56,7 @@ pub(crate) fn start_screen(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Context
     // `set_min_width`): a minimum grows, an exact size does not.
     const COL_L: f32 = 300.0;
     const COL_R: f32 = 240.0;
-    let shown = egui::Window::new(format!("{} {}", ph::HOUSE, crate::i18n::tr("start-title")))
-        .id(egui::Id::new("win_start"))
+    let shown = qymcad_shell::window(format!("{} {}", ph::HOUSE, crate::i18n::tr("start-title")), qymcad_ui_state::WinKind::Start.id(), ctx)
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -126,7 +125,9 @@ pub(crate) fn start_screen(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Context
                         close = true;
                     }
                     if ui.button(format!("{}  {}", ph::KEYBOARD, crate::i18n::tr("start-hotkeys"))).clicked() {
-                        wc.win.open(WinKind::Hotkeys);
+                        wc.win.open(WinKind::Settings);
+                        wc.scheme.section = qymcad_ui_state::settings_sections::SettingsSection::Keyboard;
+                        wc.scheme.search.clear();
                         close = true;
                     }
                     ui.hyperlink_to(format!("{}  {}", ph::BOOK_OPEN, crate::i18n::tr("start-help-site")), "https://cad.qymis.tech");

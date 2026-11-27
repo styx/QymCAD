@@ -3,10 +3,43 @@
 //! the sketch then opened again and its own steps taken back and brought again.
 use super::*;
 
-/// THE SIZES OF THE SKETCH OF EVERY TOOL: a size laid only when typed, then a rectangle with its centre fixed.
 pub(super) fn sizes(app: &mut App, si: usize, problems: &mut Vec<String>) {
     a_size_only_when_typed(app, si, problems);
     a_rectangle_with_its_centre_fixed(app, si, problems);
+    a_circle_by_two_points_on_the_key_pressed_again(app, si, problems);
+}
+
+/// A circle of the sketch as drawn: where its centre stands and its radius.
+#[derive(Debug)]
+struct Drawn<'a> {
+    centre: &'a qymcad_core::model::SketchPoint,
+    r: f64,
+}
+
+/// The circles of sketch `si`, in the order they were drawn.
+fn circles(a: &App, si: usize) -> Vec<Drawn<'_>> {
+    let sk = &a.project.sketches[si];
+    sk.entities.iter().filter_map(|e| e.kind.as_circle()).filter_map(|c| sk.points.iter().find(|q| q.id == c.center).map(|q| Drawn { centre: q, r: c.r })).collect::<Vec<_>>()
+}
+
+fn a_circle_by_two_points_on_the_key_pressed_again(app: &mut App, si: usize, problems: &mut Vec<String>) {
+    let before = circles(app, si).len();
+    let mut hand = Hand::canvas(app);
+    let cycles = crate::gui::hotkeys::press_again_choice(&mut hand, qymcad_ui_state::Again::Cycles);
+    hand.key(egui::Key::C).key(egui::Key::C);
+    hand.click2d(140.0, 10.0).click2d(150.0, 10.0);
+    hand.key(egui::Key::Escape).key(egui::Key::Escape);
+    hand.key(egui::Key::C).key(egui::Key::Escape).key(egui::Key::Escape);
+    let first = hand.app.tool_prefs.circ_mode == qymcad_ui_state::CircleWay::CentreRadius;
+    let back = crate::gui::hotkeys::press_again_choice(&mut hand, qymcad_ui_state::Again::PutsDown);
+    let now = circles(app, si);
+    let laid = now.len() == before + 1 && now.last().is_some_and(|c| (c.centre.x - 145.0).abs() < 0.6 && (c.centre.y - 10.0).abs() < 0.6 && (c.r - 5.0).abs() < 0.6);
+    if !cycles || !back || !laid || !first {
+        problems.push(format!(
+            "sketch: C, C under \"cycles through its modes\" and two clicks did not lay the circle by two points (set: {cycles}, put back: {back}, taken anew at the first mode: {first}); the circles: {now:?}"
+        ));
+    }
+    check_all(app, "sketch: a circle by two points reached by its key pressed again", problems);
 }
 
 /// A SIZE ONLY WHEN TYPED: the circles and the arc above were drawn without a value typed and carry no size of

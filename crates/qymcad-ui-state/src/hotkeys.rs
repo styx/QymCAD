@@ -2,10 +2,9 @@
 
 use super::*;
 
-/// WHILE A KEY IS BEING REASSIGNED: what is being waited for, and why the last press was refused.
-///
-/// Two fields on the application that only ever moved together and only ever meant something while one
-/// window was open.
+/// WHILE A KEY IS BEING REASSIGNED in Settings -> Keyboard: what is being waited for, why the last press was refused,
+/// the clash asked about, and the filter of the table. Only the waiting, the refusal and the clash mean something
+/// while the table is on screen; `settle` ends the three.
 #[derive(Default)]
 pub struct HotkeyCapture {
     /// The action a key is being assigned to right now - the window is waiting for a press.
@@ -18,6 +17,18 @@ pub struct HotkeyCapture {
     pub clash: Option<HotkeyClash>,
     /// The filter typed above the table: a word of the description or a key.
     pub filter: String,
+}
+
+impl HotkeyCapture {
+    /// AN EDIT MADE BY A CLICK ENDS WHATEVER THE TABLE WAS IN THE MIDDLE OF: the waiting for a key, a clash question,
+    /// a refusal. The filter stays: it is what the person typed, not a state of the table. Reported behaviour: X or
+    /// reset clicked while the table waited for a key changed the key, and the table went on waiting - the next press
+    /// overwrote what the click had just set.
+    pub fn settle(&mut self) {
+        self.action = None;
+        self.clash = None;
+        self.note.clear();
+    }
 }
 
 /// A key asked for by one action while another already holds it in the same area.

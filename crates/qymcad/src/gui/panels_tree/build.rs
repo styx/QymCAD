@@ -22,8 +22,7 @@ pub(crate) fn tree_panel(tc: &mut qymcad_ui_state::TreeCtx, ui: &mut egui::Ui) {
                 ui.separator();
                 egui::CollapsingHeader::new(format!("{} {}", ph::FILE, crate::i18n::tr1("tree-import-sources", "n", &tc.project.sources.len().to_string()))).id_salt("sources").show(ui, |ui| {
                     let (mut del, mut again): (Option<usize>, Option<usize>) = (None, None);
-                    for si in 0..tc.project.sources.len() {
-                        let s = &tc.project.sources[si];
+                    for (si, s) in tc.project.sources.iter().enumerate() {
                         ui.horizontal(|ui| {
                             // the right button on the row opens what can be done with the file, as on any row of the tree
                             ui.add(

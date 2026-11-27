@@ -251,17 +251,10 @@ impl Shape {
         let ptrs: Vec<*const QymShape> = parts.iter().map(|s| s.ptr as *const QymShape).collect();
         unsafe { Self::wrap(qym_shape_fuse_many(ptrs.as_ptr(), ptrs.len() as i32)) }
     }
-    /// A real thread on this body along the axis given by `origin` and `dir`, on a surface of radius
-    /// `radius` taken from the geometry itself. A helical groove — of pitch `pitch`, profile angle
-    /// `angle_deg`, depth `depth` and `starts` starts, `left` for a left hand and `internal` for one inside a
-    /// hole — is cut out of the body. Genuine B-rep, by a helix, a pipe shell and a boolean cut, not
-    /// cosmetics.
-    #[allow(clippy::too_many_arguments)]
     /// A helical rib or groove from an exact profile (`geom::encode_profile`) computed by the model kernel
     /// from the thread standard. `mode` 0 subtracts, giving a thread, and 1 unites, giving the flight of an
     /// auger. The profile lies in the axial plane: x along the axis, y radially out from the surface of
     /// radius `radius`.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn helical_profile(&self, h: HelicalCut) -> Option<Shape> {
         let HelicalCut { axis, radius, profile, length, lead, starts, hand, kind: helix, lead_in, lead_out, gnames, rnames, crest_relief } = h;
         let (origin, dir) = (axis.origin, axis.dir);

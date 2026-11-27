@@ -321,33 +321,36 @@ pub(crate) fn params_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Contex
     let mut open = true;
     let mut dirty = false;
     let mut remove: Option<usize> = None;
-    egui::Window::new(format!("{} {}", ph::FUNCTION, crate::i18n::tr("win-params"))).id(egui::Id::new("win_params")).open(&mut open).resizable(true).default_width(360.0).show(ctx, |ui| {
-        ui.label(egui::RichText::new(crate::i18n::tr("par-hint")).weak().small());
-        ui.separator();
-        // THE FIELD WIDTHS ARE ELASTIC. They used to be a hard 90 and 120 points: the window stretched and the
-        // fields did not, so a long variable name COULD NOT BE TYPED - the text crawled under the edge and one
-        // had to type blind. The fields now share the window's width, and the hard numbers became a lower bound.
-        let rows = params_rows_ui(wc, ui);
-        dirty |= rows.dirty;
-        remove = rows.remove;
-        // THE REASONS, BELOW THE TABLE AND ACROSS ITS WHOLE WIDTH. A cause that has to be hunted for by
-        // hovering is a cause nobody reads, and the narrowest column of the table is no place for a sentence.
-        for (name, msg) in &rows.errors {
-            ui.add(egui::Label::new(qymcad_ui_state::notice_text(&wc.scheme.pal, &qymcad_ui_state::Notice::error(format!("{name}: {msg}")), qymcad_ui_state::NoticeSize::Small)).wrap());
-        }
-        ui.separator();
-        if ui.button(format!("{} {}", ph::PLUS, crate::i18n::tr("win-add-param"))).clicked() {
-            let mut ed = qymcad_ui_state::edit_over(wc.rebuild(), crate::i18n::tr("win-add-param"));
-            ed.project().parameters.push(Param { name: String::new(), expr: String::new(), value: 0.0 });
-            drop(ed);
-            dirty = true;
-        }
-        // THE DRIVERS LIVE IN THE TABLE ITSELF (see `params_rows_ui`) rather than in a separate list below.
-        //
-        // That separate list was look-but-do-not-touch: a name, a path, a number, and nothing more. This table
-        // is the one place where the project's WHOLE set of numbers is visible and editable; two different
-        // lists with different rules have no business here.
-    });
+    qymcad_shell::window(format!("{} {}", ph::FUNCTION, crate::i18n::tr("win-params")), qymcad_ui_state::WinKind::Params.id(), ctx).open(&mut open).resizable(true).default_width(360.0).show(
+        ctx,
+        |ui| {
+            ui.label(egui::RichText::new(crate::i18n::tr("par-hint")).weak().small());
+            ui.separator();
+            // THE FIELD WIDTHS ARE ELASTIC. They used to be a hard 90 and 120 points: the window stretched and the
+            // fields did not, so a long variable name COULD NOT BE TYPED - the text crawled under the edge and one
+            // had to type blind. The fields now share the window's width, and the hard numbers became a lower bound.
+            let rows = params_rows_ui(wc, ui);
+            dirty |= rows.dirty;
+            remove = rows.remove;
+            // THE REASONS, BELOW THE TABLE AND ACROSS ITS WHOLE WIDTH. A cause that has to be hunted for by
+            // hovering is a cause nobody reads, and the narrowest column of the table is no place for a sentence.
+            for (name, msg) in &rows.errors {
+                ui.add(egui::Label::new(qymcad_ui_state::notice_text(&wc.scheme.pal, &qymcad_ui_state::Notice::error(format!("{name}: {msg}")), qymcad_ui_state::NoticeSize::Small)).wrap());
+            }
+            ui.separator();
+            if ui.button(format!("{} {}", ph::PLUS, crate::i18n::tr("win-add-param"))).clicked() {
+                let mut ed = qymcad_ui_state::edit_over(wc.rebuild(), crate::i18n::tr("win-add-param"));
+                ed.project().parameters.push(Param { name: String::new(), expr: String::new(), value: 0.0 });
+                drop(ed);
+                dirty = true;
+            }
+            // THE DRIVERS LIVE IN THE TABLE ITSELF (see `params_rows_ui`) rather than in a separate list below.
+            //
+            // That separate list was look-but-do-not-touch: a name, a path, a number, and nothing more. This table
+            // is the one place where the project's WHOLE set of numbers is visible and editable; two different
+            // lists with different rules have no business here.
+        },
+    );
     // a step of undo like every edit of the table: a parameter deleted by mistake comes back with Ctrl+Z
     if let Some(i) = remove {
         let mut ed = qymcad_ui_state::edit_over(wc.rebuild(), crate::i18n::tr("par-delete-step"));

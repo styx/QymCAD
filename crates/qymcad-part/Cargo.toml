@@ -18,7 +18,6 @@ qymcad-kernel = { path = "../qymcad-kernel" }
 qymcad-meshfit = { path = "../qymcad-meshfit" }
 qymcad-ui-state = { path = "../qymcad-ui-state" }
 qymcad-pick = { path = "../qymcad-pick" }
-qymcad-render = { path = "../qymcad-render" }
 qymcad-i18n = { path = "../qymcad-i18n" }
 qymcad-scheme = { path = "../qymcad-scheme" }
 

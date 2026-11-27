@@ -82,7 +82,7 @@ pub(crate) fn command_search_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui
     // Enter is TAKEN, not only read: it launches the command found, and a tool launched in this frame must not see
     // the same key as its own Enter - a joint answered "not yet" to a key nobody pressed for it
     let (up, down, enter, esc) =
-        ctx.input_mut(|i| (i.key_pressed(egui::Key::ArrowUp), i.key_pressed(egui::Key::ArrowDown), i.consume_key(egui::Modifiers::NONE, egui::Key::Enter), i.key_pressed(egui::Key::Escape)));
+        ctx.input_mut(|i| (i.key_pressed(egui::Key::ArrowUp), i.key_pressed(egui::Key::ArrowDown), i.consume_key(egui::Modifiers::NONE, egui::Key::Enter), crate::gui::hotkeys::consume_esc(i)));
     if down && !hits.is_empty() {
         wc.win.cmd_search_sel = (wc.win.cmd_search_sel + 1) % hits.len();
     }
@@ -92,8 +92,7 @@ pub(crate) fn command_search_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui
     let mut run: Option<&'static str> = None;
     let sel = wc.win.cmd_search_sel;
     let wb_code = crate::gui::workbench_code(&wc.workbench);
-    egui::Window::new(format!("{} {}", ph::MAGNIFYING_GLASS, crate::i18n::tr("cs-title")))
-        .id(egui::Id::new("win_command_search"))
+    qymcad_shell::window(format!("{} {}", ph::MAGNIFYING_GLASS, crate::i18n::tr("cs-title")), qymcad_ui_state::WinKind::CmdSearch.id(), ctx)
         .title_bar(false)
         .resizable(false)
         .fixed_size(egui::vec2(460.0, 0.0))
@@ -144,5 +143,47 @@ pub(crate) fn command_search_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui
         // THE SHARED DOOR, asked for rather than opened here: launching a command switches the workbench and
         // starts a tool, which is the application's business and cannot happen in the middle of drawing.
         wc.ask.push(qymcad_ui_state::WinAsk::RunCommand(code));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::gui::hand::Hand;
+
+    /// ESC CLOSES THE SEARCH WHATEVER MODIFIER THE FRAME HOLDS: Ctrl+Esc with Ctrl let go in the same frame comes as
+    /// an Esc carrying Ctrl in a frame holding none. Reported behaviour, of the settings: Ctrl+Esc left the window
+    /// open and put the line in hand down.
+    #[test]
+    fn ctrl_esc_let_go_in_one_frame_closes_the_search() {
+        let _en = crate::gui::tests::InEnglish::new();
+        let mut app = crate::gui::App::default();
+        let mut hand = Hand::new(&mut app);
+        hand.press_word(&crate::i18n::tr("start-close"), egui::Pos2::ZERO);
+        hand.chord(egui::Modifiers::COMMAND, egui::Key::K);
+        let opened = hand.window_titled(&crate::i18n::tr("cs-title")).is_some();
+        let esc = |pressed| egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed, repeat: false, modifiers: egui::Modifiers::CTRL };
+        hand.frame(vec![esc(true), esc(false)]);
+        let still = hand.window_titled(&crate::i18n::tr("cs-title")).is_some();
+        assert!(opened, "setup: Ctrl+K did not open the command search");
+        assert!(!still, "Ctrl+Esc with Ctrl let go in the same frame left the command search open");
+    }
+
+    /// ESC THAT CLOSES THE SEARCH IS THE SEARCH'S: it is taken off the frame, so the tool in hand behind the window,
+    /// which reads Esc later in the same frame, keeps its place.
+    #[test]
+    fn esc_closing_the_search_leaves_the_line_in_hand() {
+        let _en = crate::gui::tests::InEnglish::new();
+        let mut app = crate::gui::App::default();
+        let mut hand = Hand::new(&mut app);
+        hand.press_word(&crate::i18n::tr("start-close"), egui::Pos2::ZERO);
+        let sketch = hand.press_word(&crate::i18n::tr("plane-xy-table"), egui::Pos2::ZERO);
+        hand.key(egui::Key::L);
+        let line = hand.app.tools.armed.drawing() == Some(qymcad_ui_state::SketchShape::Line);
+        hand.chord(egui::Modifiers::COMMAND, egui::Key::K);
+        let opened = hand.window_titled(&crate::i18n::tr("cs-title")).is_some();
+        hand.key(egui::Key::Escape);
+        let (closed, held) = (hand.window_titled(&crate::i18n::tr("cs-title")).is_none(), hand.app.tools.armed.drawing());
+        assert!(sketch && line && opened && closed, "setup: (sketch: {sketch}, line: {line}, search opened: {opened}, closed: {closed})");
+        assert_eq!(held, Some(qymcad_ui_state::SketchShape::Line), "Esc that closed the command search reached the line in hand behind it");
     }
 }

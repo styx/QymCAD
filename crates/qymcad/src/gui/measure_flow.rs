@@ -138,7 +138,8 @@ mod tests {
         let mut app = App::default();
         // the window up first: its first frames settle the program as it starts, the tool taken after
         let mut hand = super::super::hand::Hand::as_it_stands(&mut app);
-        hand.frame(Vec::new());
+        // the start screen put away: a window in front takes Esc (`esc_closes_the_front_window`)
+        hand.press_word(&crate::i18n::tr("start-close"), egui::Pos2::ZERO);
         hand.app.toggle_measure_3d();
         hand.app.side.m3.picks = vec![super::super::measure3d::MeasurePick { item: MeasureItem::Point([0.0; 3]), what: "vertex".into(), at: [0.0; 3] }];
         hand.key(egui::Key::Escape);

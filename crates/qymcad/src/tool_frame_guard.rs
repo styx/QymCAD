@@ -10,8 +10,38 @@ mod tests {
     /// THE CRATES OF THE WORKBENCHES whose tools stand in the frame.
     const WORKBENCHES: [&str; 3] = ["qymcad-part/src", "qymcad-assembly/src", "qymcad-sketch/src"];
 
-    /// What a tool of the frame does not do itself: lay an area or a window, read Enter or Esc.
-    const FORBIDDEN: [&str; 4] = ["Area::new(", "Window::new(", "Key::Enter", "Key::Escape"];
+    /// What a tool of the frame does not do itself: lay an area, a box at the geometry or a window, read Enter or Esc.
+    /// Each is matched as a name standing on its own, whatever path leads to it: `window(` imported, `qymcad_shell::window(`
+    /// and `qymcad_ui_state::at_geometry(` are one door each.
+    const FORBIDDEN: [&str; 5] = ["Area::new(", "window(", "at_geometry(", "Key::Enter", "Key::Escape"];
+
+    /// THE DOORS a line of code opens: each forbidden name it holds where no letter, digit or `_` stands before it, so
+    /// `window(` is caught behind `use` or a path and `is_window(` is not.
+    fn doors(code: &str) -> Vec<&'static str> {
+        FORBIDDEN.iter().copied().filter(|door| code.match_indices(door).any(|(at, _)| !code[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_'))).collect()
+    }
+
+    /// THE DOORS ARE KNOWN WHATEVER PATH LEADS TO THEM. Reported behaviour: the guard forbade only the literal
+    /// `Area::new(` and `qymcad_shell::window(`, so a box laid by `qymcad_ui_state::at_geometry` or a window opened by an
+    /// imported `window(` passed.
+    #[test]
+    fn every_door_is_known_by_its_name() {
+        /// A line of code and the door it opens.
+        struct Sample {
+            line: &'static str,
+            door: &'static str,
+        }
+        for Sample { line, door } in [
+            Sample { line: "let a = qymcad_ui_state::at_geometry(id);", door: "at_geometry(" },
+            Sample { line: "at_geometry(id).show(ctx, |ui| {});", door: "at_geometry(" },
+            Sample { line: "window(title, id, ctx).show(ctx, |ui| {});", door: "window(" },
+            Sample { line: "qymcad_shell::window(title, id, ctx)", door: "window(" },
+            Sample { line: "egui::Area::new(id)", door: "Area::new(" },
+        ] {
+            assert_eq!(doors(line), [door], "the door in {line:?} is not caught");
+        }
+        assert!(doors("fn is_window(x: u8) -> bool { my_at_geometry(x) }").is_empty(), "a name that only ends in a door is taken for one");
+    }
 
     /// A function allowed to lay a box of its own or read a key of its own, and why.
     struct Allowed {
@@ -61,7 +91,7 @@ mod tests {
                             function = name;
                         }
                     }
-                    for what in FORBIDDEN.iter().filter(|f| code.contains(**f)) {
+                    for what in doors(code) {
                         out.push(Found { path: path.clone(), function: function.clone(), what, line: i + 1 });
                     }
                 }

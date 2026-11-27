@@ -664,8 +664,6 @@ impl qymcad_core::feature::Kernel for OcctKernel {
         let asked = crate::ops::kept::Asked { kind: qymcad_core::errors::Op::ChamferAsym, body, src, sizes: &[d1], edges, roles: &roles, more };
         self.blend_kept(asked, || self.chamfer_asym_op(crate::ops::blend::BlendAsk { body, src, size: d1, edges, roles: roles.clone() }, shape))
     }
-    #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::too_many_arguments)]
     fn helical(&self, h: qymcad_core::feature::Helical<'_>) -> Result<Built, qymcad_core::errors::CoreError> {
         // The profile has already been computed by the model kernel from the thread standard, as exact
         // segments and arcs; here there is only the sweep along the helix and the boolean — subtract for a

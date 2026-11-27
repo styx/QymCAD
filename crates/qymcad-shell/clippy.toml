@@ -1,0 +1,5 @@
+# The crate of `qymcad_shell::window`, the one place `egui::Window::new` is called; the workspace
+# `clippy.toml` refuses it everywhere else.
+#
+# Clippy reads this file INSTEAD of the workspace's, not on top of it: every other setting of the workspace file is
+# repeated here (held by `tests::the_crate_clippy_file_keeps_the_workspace_settings`).

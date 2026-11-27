@@ -58,7 +58,7 @@ pub fn lay_words(ctx: &egui::Context, canvas: egui::Rect, pal: &qymcad_scheme::P
     if words.is_empty() {
         return;
     }
-    egui::Area::new(egui::Id::new(TOOL_WORDS)).pivot(egui::Align2::LEFT_BOTTOM).fixed_pos(canvas.left_bottom() + egui::vec2(4.0, -4.0)).order(AT_GEOMETRY).show(ctx, |ui| {
+    at_geometry(egui::Id::new(TOOL_WORDS)).pivot(egui::Align2::LEFT_BOTTOM).fixed_pos(canvas.left_bottom() + egui::vec2(4.0, -4.0)).show(ctx, |ui| {
         egui::Frame::popup(ui.style()).show(ui, |ui| {
             ui.set_max_width((canvas.width() * 0.6).max(240.0));
             for w in words {

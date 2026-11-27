@@ -247,4 +247,17 @@ mod tests {
         }
         assert!(split.is_empty(), "one package is declared at several versions, so several copies are compiled:\n  {}", split.join("\n  "));
     }
+
+    /// NOTHING IS WATCHED THAT LEFT. A package no manifest declares any more is dropped from `tools/deps.toml` in the
+    /// same commit: its note goes on telling a reader what the program depends on, and the solver was described as
+    /// driven by two packages it had stopped linking.
+    #[test]
+    fn nothing_is_watched_that_left() {
+        if !in_the_working_tree() {
+            return; // a published copy of the tree: nothing here to measure
+        }
+        let declared = declarations();
+        let left: Vec<String> = snapshot().into_iter().map(|(name, _, _)| name).filter(|name| !declared.iter().any(|d| d.name == *name)).collect();
+        assert!(left.is_empty(), "tools/deps.toml watches packages no manifest declares: {left:?}");
+    }
 }

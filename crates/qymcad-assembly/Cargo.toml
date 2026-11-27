@@ -9,14 +9,12 @@ license.workspace = true
 # application.
 #
 # It does not depend on the Sketch nor on the Part: what the three have in common lives in the modules
-# below them (the records, the picking, the drawing).
+# below them (the records).
 [dependencies]
 egui = "0.35"
 egui-phosphor = "0.13"
 qymcad-core = { path = "../qymcad-core" }
 qymcad-ui-state = { path = "../qymcad-ui-state" }
-qymcad-pick = { path = "../qymcad-pick" }
-qymcad-render = { path = "../qymcad-render" }
 qymcad-i18n = { path = "../qymcad-i18n" }
 
 [lints]

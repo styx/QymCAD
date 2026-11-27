@@ -18,7 +18,7 @@ pub(crate) fn crash_notice(crash_report: &mut Vec<std::path::PathBuf>, ctx: &egu
     let Some(path) = crash_report.first().cloned() else { return };
     let mut open = true;
     let mut dismiss = false;
-    egui::Window::new(format!("{} {}", qymcad_ui_state::tone_icon(qymcad_ui_state::Tone::Warning).unwrap_or_default(), crate::i18n::tr("crash-title"))).id(egui::Id::new("win_crash"))
+    qymcad_shell::window(format!("{} {}", qymcad_ui_state::tone_icon(qymcad_ui_state::Tone::Warning).unwrap_or_default(), crate::i18n::tr("crash-title")), egui::Id::new("win_crash"), ctx)
         // OVER EVERY WINDOW, the start screen too: it stood on the same layer and took the click meant for "Close"
         .order(egui::Order::Foreground)
         .open(&mut open)
@@ -64,8 +64,7 @@ pub(crate) fn updates_dialog(win: &mut super::Windows, scheme: &super::SchemeUi,
     use qymcad_update::Outcome;
     let outcome = crate::gui::update_ui::outcome();
     let mut open = true;
-    egui::Window::new(format!("{} {}", ph::ARROW_CIRCLE_UP, crate::i18n::tr("help-check-updates")))
-        .id(egui::Id::new("win_check_updates"))
+    qymcad_shell::window(format!("{} {}", ph::ARROW_CIRCLE_UP, crate::i18n::tr("help-check-updates")), qymcad_ui_state::WinKind::Updates.id(), ctx)
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -150,8 +149,7 @@ pub(crate) fn support_dialog(win: &mut super::Windows, ctx: &egui::Context) {
         return;
     }
     let mut open = true;
-    egui::Window::new(format!("{} {}", ph::HEART, crate::i18n::tr("win-support")))
-        .id(egui::Id::new("win_support"))
+    qymcad_shell::window(format!("{} {}", ph::HEART, crate::i18n::tr("win-support")), qymcad_ui_state::WinKind::Support.id(), ctx)
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -199,8 +197,7 @@ pub(crate) fn about_dialog(win: &mut super::Windows, scheme: &super::SchemeUi, c
         return;
     }
     let mut open = true;
-    egui::Window::new(format!("{} {}", ph::INFO, crate::i18n::tr("win-about")))
-        .id(egui::Id::new("win_about"))
+    qymcad_shell::window(format!("{} {}", ph::INFO, crate::i18n::tr("win-about")), qymcad_ui_state::WinKind::About.id(), ctx)
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -278,8 +275,7 @@ pub(crate) fn save_template_dialog(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui:
     }
     let mut done = false;
     let mut cancel = ctx.input(|i| i.key_pressed(egui::Key::Escape));
-    egui::Window::new(format!("{} {}", ph::PACKAGE, crate::i18n::tr("file-save-as-template")))
-        .id(egui::Id::new("win_save_as_template"))
+    qymcad_shell::window(format!("{} {}", ph::PACKAGE, crate::i18n::tr("file-save-as-template")), qymcad_ui_state::WinKind::SaveTemplate.id(), ctx)
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -315,55 +311,58 @@ pub(crate) fn doc_props_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Con
         return;
     }
     let mut open = wc.win.is(WinKind::DocProps);
-    egui::Window::new(format!("{} {}", ph::FILE_TEXT, crate::i18n::tr("doc-props-title"))).id(egui::Id::new("win_doc_props")).open(&mut open).resizable(true).default_width(420.0).show(ctx, |ui| {
-        egui::Grid::new("doc_props").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
-            ui.label(crate::i18n::tr("doc-props-name"));
-            ui.text_edit_singleline(&mut wc.project.meta.title);
-            ui.end_row();
-            ui.label(crate::i18n::tr("doc-props-author"));
-            ui.text_edit_singleline(&mut wc.project.meta.author);
-            ui.end_row();
-            ui.label(crate::i18n::tr("doc-props-version"));
-            ui.text_edit_singleline(&mut wc.project.meta.version);
-            ui.end_row();
-        });
-        ui.label(crate::i18n::tr("doc-props-comment"));
-        ui.add(egui::TextEdit::multiline(&mut wc.project.meta.comment).desired_rows(4).desired_width(f32::INFINITY));
-        ui.separator();
-        // THE GEOMETRY TOLERANCE LIVES HERE, NOT IN THE PROGRAM'S SETTINGS. Both the look on screen and the
-        // contents of an STL depend on it: were it a program setting, one file would export differently for
-        // two people, and both would be sure the program was lying.
-        ui.label(egui::RichText::new(crate::i18n::tr("doc-props-quality")).strong());
-        ui.horizontal_wrapped(|ui| {
-            for q in qymcad_core::model::GeomQuality::all() {
-                if ui.selectable_label(wc.project.geom_quality == q, crate::i18n::tr(q.label_key())).clicked() && wc.project.geom_quality != q {
-                    qymcad_ui_state::begin_edit(&mut *wc.edits, &*wc.project, crate::i18n::tr("doc-props-quality")); // THE EDIT BOUNDARY: this changes the document and can be undone
-                    wc.project.geom_quality = q;
-                    // the geometry must be recomputed: the tolerance changes THE MESH, not just a number
-                    wc.project.mark_bodies_dirty();
-                    qymcad_ui_state::commit_edit(&mut wc.rebuild());
-                    qymcad_ui_state::mark_dirty_for_rebuild(&mut wc.rebuild());
+    qymcad_shell::window(format!("{} {}", ph::FILE_TEXT, crate::i18n::tr("doc-props-title")), qymcad_ui_state::WinKind::DocProps.id(), ctx).open(&mut open).resizable(true).default_width(420.0).show(
+        ctx,
+        |ui| {
+            egui::Grid::new("doc_props").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
+                ui.label(crate::i18n::tr("doc-props-name"));
+                ui.text_edit_singleline(&mut wc.project.meta.title);
+                ui.end_row();
+                ui.label(crate::i18n::tr("doc-props-author"));
+                ui.text_edit_singleline(&mut wc.project.meta.author);
+                ui.end_row();
+                ui.label(crate::i18n::tr("doc-props-version"));
+                ui.text_edit_singleline(&mut wc.project.meta.version);
+                ui.end_row();
+            });
+            ui.label(crate::i18n::tr("doc-props-comment"));
+            ui.add(egui::TextEdit::multiline(&mut wc.project.meta.comment).desired_rows(4).desired_width(f32::INFINITY));
+            ui.separator();
+            // THE GEOMETRY TOLERANCE LIVES HERE, NOT IN THE PROGRAM'S SETTINGS. Both the look on screen and the
+            // contents of an STL depend on it: were it a program setting, one file would export differently for
+            // two people, and both would be sure the program was lying.
+            ui.label(egui::RichText::new(crate::i18n::tr("doc-props-quality")).strong());
+            ui.horizontal_wrapped(|ui| {
+                for q in qymcad_core::model::GeomQuality::all() {
+                    if ui.selectable_label(wc.project.geom_quality == q, crate::i18n::tr(q.label_key())).clicked() && wc.project.geom_quality != q {
+                        qymcad_ui_state::begin_edit(&mut *wc.edits, &*wc.project, crate::i18n::tr("doc-props-quality")); // THE EDIT BOUNDARY: this changes the document and can be undone
+                        wc.project.geom_quality = q;
+                        // the geometry must be recomputed: the tolerance changes THE MESH, not just a number
+                        wc.project.mark_bodies_dirty();
+                        qymcad_ui_state::commit_edit(&mut wc.rebuild());
+                        qymcad_ui_state::mark_dirty_for_rebuild(&mut wc.rebuild());
+                    }
                 }
+            });
+            ui.label(egui::RichText::new(crate::i18n::tr("doc-props-quality-hint")).weak().small());
+            ui.separator();
+            // THE FACTS THE PROGRAM KNOWS BY ITSELF - they are read, not edited
+            let created = wc.project.meta.created.clone();
+            ui.label(egui::RichText::new(if created.is_empty() { crate::i18n::tr("doc-props-not-saved-yet") } else { crate::i18n::tr1("doc-props-created", "when", &created) }).small().weak());
+            let counts = crate::i18n::tr2("doc-props-counts", "parts", &wc.project.components.len().to_string(), "bodies", &wc.project.bodies.len().to_string());
+            ui.label(egui::RichText::new(counts).small().weak());
+            if let Some(p) = wc.project_path.clone() {
+                ui.label(egui::RichText::new(crate::i18n::tr1("doc-props-path", "path", &p)).small().weak());
             }
-        });
-        ui.label(egui::RichText::new(crate::i18n::tr("doc-props-quality-hint")).weak().small());
-        ui.separator();
-        // THE FACTS THE PROGRAM KNOWS BY ITSELF - they are read, not edited
-        let created = wc.project.meta.created.clone();
-        ui.label(egui::RichText::new(if created.is_empty() { crate::i18n::tr("doc-props-not-saved-yet") } else { crate::i18n::tr1("doc-props-created", "when", &created) }).small().weak());
-        let counts = crate::i18n::tr2("doc-props-counts", "parts", &wc.project.components.len().to_string(), "bodies", &wc.project.bodies.len().to_string());
-        ui.label(egui::RichText::new(counts).small().weak());
-        if let Some(p) = wc.project_path.clone() {
-            ui.label(egui::RichText::new(crate::i18n::tr1("doc-props-path", "path", &p)).small().weak());
-        }
-        // WHICH BUILD WROTE THIS FILE. Shown, not editable: it is the program's word about itself,
-        // and the person's own version lives in the field above. Empty for a document that has
-        // never been saved, and then there is nothing to say.
-        if !wc.project.meta.saved_by.is_empty() {
-            let by = wc.project.meta.saved_by.clone();
-            ui.label(egui::RichText::new(crate::i18n::tr1("doc-props-saved-by", "build", &by)).small().weak());
-        }
-    });
+            // WHICH BUILD WROTE THIS FILE. Shown, not editable: it is the program's word about itself,
+            // and the person's own version lives in the field above. Empty for a document that has
+            // never been saved, and then there is nothing to say.
+            if !wc.project.meta.saved_by.is_empty() {
+                let by = wc.project.meta.saved_by.clone();
+                ui.label(egui::RichText::new(crate::i18n::tr1("doc-props-saved-by", "build", &by)).small().weak());
+            }
+        },
+    );
     wc.win.set(WinKind::DocProps, open);
 }
 
@@ -435,8 +434,7 @@ pub(crate) fn nav_dialog(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Context) 
         ui.allocate_rect(all, egui::Sense::click_and_drag());
         ui.painter().rect_filled(all, 0.0, backdrop);
     });
-    egui::Window::new(format!("{}  {}", qymcad_ui_state::tone_icon(qymcad_ui_state::Tone::Warning).unwrap_or_default(), crate::i18n::tr("win-unsaved")))
-        .id(egui::Id::new("win_unsaved"))
+    qymcad_shell::window(format!("{}  {}", qymcad_ui_state::tone_icon(qymcad_ui_state::Tone::Warning).unwrap_or_default(), crate::i18n::tr("win-unsaved")), egui::Id::new("win_unsaved"), ctx)
         .order(egui::Order::Tooltip)
         .collapsible(false)
         .resizable(false)
@@ -495,8 +493,7 @@ pub(crate) fn nav_dialog(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Context) 
 pub(crate) fn mesh_quality_dialog(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Context) {
     let Some((format, target)) = *wc.mesh_export else { return };
     let mut choice: Option<Option<f64>> = None; // None = close; Some(Some(defl)) = export; Some(None) = cancel
-    egui::Window::new(crate::i18n::tr1("mesh-title", "format", crate::gui::mesh_entry(format).name()))
-        .id(egui::Id::new("win_mesh_quality"))
+    qymcad_shell::window(crate::i18n::tr1("mesh-title", "format", crate::gui::mesh_entry(format).name()), egui::Id::new("win_mesh_quality"), ctx)
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -549,8 +546,7 @@ pub(crate) fn confirm_delete_popup(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui:
     let cascade = crate::gui::delete_cascade_names(&*wc.project, sel);
     let mut do_del = ctx.input(|i| i.key_pressed(egui::Key::Enter)); // Yes is the default
     let mut cancel = ctx.input(|i| i.key_pressed(egui::Key::Escape));
-    egui::Window::new(format!("{} {}", ph::TRASH, crate::i18n::tr("win-delete-q")))
-        .id(egui::Id::new("win_delete_question"))
+    qymcad_shell::window(format!("{} {}", ph::TRASH, crate::i18n::tr("win-delete-q")), egui::Id::new("win_delete_question"), ctx)
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])

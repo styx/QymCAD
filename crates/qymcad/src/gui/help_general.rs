@@ -73,7 +73,7 @@ mod tests {
     /// ("inside a field, Alt") is invisible: U is pressed in the length field, nothing happens, and the
     /// conclusion drawn is about the program. A remark in the code of `input.rs` will tell nobody that.
     ///
-    /// The guard holds THREE ends: the code really does look at `modifiers.alt`, the reference window
+    /// The guard holds THREE ends: the code really does look at `modifiers.alt`, the table of keys
     /// prints the remark, the article repeats it. Throw Alt out of the handler and the first end turns
     /// red; forget the text and the second or the third does.
     #[test]
@@ -156,7 +156,7 @@ mod tests {
         for l in langs() {
             let note = crate::i18n::tr_in(&l, "hotkeys-alt-note").unwrap_or_else(|| panic!("there is no remark about Alt in language {l}"));
             assert!(note.contains("Alt"), "the remark ({l}) must name the key itself: {note}");
-            assert!(include_str!("hotkeys.rs").contains("hotkeys-alt-note"), "the remark is in the language catalogue, and the reference window does not print it — the rule stayed a secret");
+            assert!(include_str!("hotkeys.rs").contains("hotkeys-alt-note"), "the remark is in the language catalogue, and the table of keys does not print it — the rule stayed a secret");
             let md = article_in(&l, "general/10-hotkeys");
             assert!(md.contains("Alt+U"), "the article ({l}) must show the rule BY EXAMPLE: Alt+U instead of U");
         }
@@ -173,7 +173,7 @@ mod tests {
         for l in langs() {
             let md = article_in(&l, "general/10-hotkeys");
             for area in AREAS {
-                // the caption of the area is taken from where the reference window takes it
+                // the caption of the area is taken from where the table of keys takes it
                 let label = crate::i18n::tr_in(&l, &format!("hotkeys-area-{area}")).unwrap_or_else(|| panic!("there is no caption for area {area} in language {l}"));
                 assert!(md.to_lowercase().contains(&label.to_lowercase()), "the key area \"{label}\" is in the reference and the article ({l}) does not have it");
             }

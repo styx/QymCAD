@@ -79,7 +79,7 @@ pub(crate) struct App {
     project: Project,
     /// The splash and its progress. The logo for the splash (its texture is loaded lazily on the first frame).
     logo_tex: Option<egui::TextureHandle>,
-    /// The hotkey window's own state while it waits for a press (see `HotkeyCapture`).
+    /// The state of the table of keys in Settings -> Keyboard: the key waited for, a refusal, a clash, the filter.
     hotkeys: qymcad_ui_state::HotkeyCapture,
     /// THE TEXTS TYPED INTO THE BARS' FIELDS: the field's key mapped to what was typed.
     ///
@@ -337,6 +337,7 @@ impl App {
                 BarAsk::ToggleLibrary => toggle_parts_library(&mut self.parts, &mut self.win),
                 BarAsk::ToggleSketchPick => self.toggle_sketch_pick(),
                 BarAsk::SketchSelectMode => crate::gui::sketching::sketch_select_mode(&mut self.sketch_ctx()),
+                BarAsk::NextWay(t) => qymcad_sketch::take_next_way(&mut self.sketch_ctx(), t),
                 BarAsk::Constraint(code) => crate::gui::sketching::constraint_button(&mut self.sketch_ctx(), code),
                 BarAsk::JointPick => self.start_joint_pick(),
                 BarAsk::GroundPick => self.start_ground_pick(),
@@ -876,9 +877,7 @@ impl App {
         if edit_si(&self.project, &self.sketch_ses).is_none() {
             self.create_sketch_on(qymcad_core::feature::SketchPlane::default());
         }
-        qymcad_ui_state::take_drawing_tool(&mut qymcad_ui_state::tools_of!(self), Some(t));
-        self.viewing.mode_3d = false;
-        self.status = qymcad_sketch::drawing_hint(self.tools.armed.drawing());
+        qymcad_sketch::take_drawing_tool(&mut self.sketch_ctx(), t);
     }
 
     /// Create a sketch on a given plane (World, Datum or Face) and enter its editing.
@@ -1251,22 +1250,17 @@ impl App {
             return;
         }
         // THE ANSWER FROM AN OPEN FILE CHOOSER, picked up at the top of the frame so the file is acted on in
-        // the same frame it was chosen in. While one is open the frames are asked for by hand: the answer
-        // comes from a thread, and egui, which sleeps between input events, hears nothing of it.
+        // the same frame it was chosen in.
         let choosing = self.poll_file_ask();
         if choosing {
-            ctx.request_repaint();
             crate::gui::file_ask::inert_while_choosing(ui); // the system chooser is modal: nothing here answers until it does
         }
-        // the reference window's keys go nowhere else: Esc must not walk the cancel ladder, E must not extrude
-        let capturing = hotkeys::hotkeys_take_keyboard(&mut self.win, &mut self.hotkeys, ctx);
+        let capturing = !choosing && hotkeys::hotkeys_take_keyboard(&mut self.win, &mut self.set, &mut self.hotkeys, ctx);
         // Ctrl+S saves (silently into the current file, or a dialogue for a new one); Ctrl+Shift+S is "save as".
-        if !choosing && !capturing && !ctx.egui_wants_keyboard_input() && ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
-            if ctx.input(|i| i.modifiers.shift) {
-                self.save_project_as();
-            } else {
-                self.save_project();
-            }
+        match input::save_key(ctx).filter(|_| !choosing && !capturing) {
+            Some(input::SaveKey::As) => self.save_project_as(),
+            Some(input::SaveKey::Here) => self.save_project(),
+            None => {}
         }
         // the sign of a background rebuild; the canvas is the PREVIOUS frame's, drawn before the viewport itself
         rebuild_sign::draw_rebuild_sign(&self.regen, &self.scheme, self.viewing.view_rect, ctx, &mut self.status);
@@ -1276,7 +1270,7 @@ impl App {
                                                 // THE KEYBOARD IS THE CHOOSER'S while it is open: a barrier eats clicks, but these two read the
                                                 // input directly and would go on obeying Delete, Escape and every tool letter behind it.
         if !choosing && !capturing {
-            self.handle_key_commands(ctx); // the frame's keyboard commands — in one phase
+            self.handle_key_commands(ctx);
             self.handle_tool_hotkeys(ctx); // the tool shortcuts (L/R/C/A/P/G/D/S, E)
         }
         self.maybe_autosave(false); // a silent autosave every 3 minutes while there are unsaved edits
@@ -1318,7 +1312,6 @@ impl App {
                                                                                                 // "Finish" lives in one place: the button in the breadcrumbs (the toolbar). There is no separate banner.
         tick_view_anim(&mut self.viewing.cam, &mut self.viewing.view_anim, ctx); // the smooth turn of the view (the ViewCube)
         tick_joint_anim(&mut self.joint_anim, &mut self.project, ctx); // sweeping a joint's degree of freedom
-        self.hotkeys_window(ctx); // Help -> Shortcuts
         self.command_search_window(ctx); // the command search (Space or Ctrl+K)
         shell.run_slot(qymcad_shell::Slot::Top, ui, self);
         shell.run_slot(qymcad_shell::Slot::Bottom, ui, self);

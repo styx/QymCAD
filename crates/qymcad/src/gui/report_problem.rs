@@ -214,8 +214,7 @@ pub(crate) fn report_window(
     let mut open = true;
     let mut collect = false;
     let mut to_form = false;
-    egui::Window::new(format!("{} {}", ph::BUG, crate::i18n::tr("report-title")))
-        .id(egui::Id::new("win_report_problem"))
+    qymcad_shell::window(format!("{} {}", ph::BUG, crate::i18n::tr("report-title")), qymcad_ui_state::WinKind::Report.id(), ctx)
         .open(&mut open)
         .collapsible(false)
         .default_width(540.0)

@@ -99,9 +99,9 @@ impl BSpline {
         let mut knots = Vec::with_capacity(count + 1);
         knots.push(0.0);
         let (mut w, mut along) = (1.0, 0.0);
-        for k in 0..count {
+        for (k, t) in h.tangents.iter().take(count).enumerate() {
             if k > 0 {
-                let (arrive, leave) = (h.tangents[k].arrive.len(), h.tangents[k].leave.len());
+                let (arrive, leave) = (t.arrive.len(), t.leave.len());
                 if arrive > 1e-12 && leave > 1e-12 {
                     w *= leave / arrive;
                 }

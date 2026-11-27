@@ -20,8 +20,9 @@ path = "src/main.rs"
 qymcad-core.workspace = true
 qymcad-kernel.workspace = true
 qymcad-io.workspace = true
-# glow stays (the default) as a compiled-in fallback; wgpu is the main path for the GPU viewport, chosen at runtime
-eframe = { version = "0.35", features = ["persistence", "wgpu"] }
+# wgpu is the main path for the GPU viewport, chosen at runtime; glow is a compiled-in fallback. eframe 0.35
+# leaves glow out of its defaults, so it is named here (checked by startup::tests).
+eframe = { version = "0.35", features = ["persistence", "wgpu", "glow"] }
 egui = "0.35"
 egui_extras = { version = "0.35", features = ["svg", "image", "webp"] }
 qymcad-shell = { path = "../qymcad-shell" }

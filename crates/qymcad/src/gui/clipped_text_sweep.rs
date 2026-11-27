@@ -51,10 +51,12 @@ mod tests {
         /// A part of the window by its name, and how it is drawn.
         struct Surface {
             name: &'static str,
+            /// The clicks through the interface that bring it on screen, before it is drawn.
+            open: fn(&mut App),
             draw: fn(&mut App, &mut egui::Ui),
         }
         fn surface(name: &'static str, draw: fn(&mut App, &mut egui::Ui)) -> Surface {
-            Surface { name, draw }
+            Surface { name, open: |_| {}, draw }
         }
         let surfaces: &[Surface] = &[
             surface("tree", |a, c| a.tree_panel(c)),
@@ -82,16 +84,16 @@ mod tests {
                 crate::gui::panels_windows::parts_library_window(&mut a.win_ctx(&mut asks), c);
                 a.do_win_asks(asks, c);
             }),
-            surface("hotkeys", |a, c| a.hotkeys_window(c)),
+            Surface { name: "keyboard settings", open: crate::gui::hotkeys::open_keyboard_settings, draw: |a, c| crate::gui::hotkeys::draw_settings(a, c) },
             surface("about", |a, c| crate::gui::panels_windows::about_dialog(&mut a.win, &a.scheme, c)),
         ];
         let mut worst: Vec<(f32, String)> = Vec::new();
-        for Surface { name, draw } in surfaces {
+        for Surface { name, open, draw } in surfaces {
             let mut app = crate::gui::screen_keys::tests::populated();
+            open(&mut app);
             app.win.open(WinKind::Settings);
             app.win.open(WinKind::Params);
             app.win.open(WinKind::PartsLibrary);
-            app.win.open(WinKind::Hotkeys);
             app.win.open(WinKind::About);
             app.project.parameters.push(qymcad_core::model::Param { name: "bad".into(), expr: "w/".into(), value: 0.0 });
             app.project.eval_parameters();

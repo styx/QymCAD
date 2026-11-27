@@ -197,8 +197,6 @@ pub enum WinKind {
     Report,
     /// The command search.
     CmdSearch,
-    /// The hotkeys reference (under Help), built from ONE source - see hotkeys.rs.
-    Hotkeys,
     /// The project parameters (the named dimensions and formulas).
     Params,
     /// The settings.
@@ -220,14 +218,13 @@ pub enum WinKind {
 impl WinKind {
     /// EVERY KIND, so that a walk over the windows cannot silently miss one added later. A guard checks that the
     /// count here matches the number of variants declared above.
-    pub const ALL: [WinKind; 15] = [
+    pub const ALL: [WinKind; 14] = [
         WinKind::SaveTemplate,
         WinKind::Start,
         WinKind::DocProps,
         WinKind::About,
         WinKind::Report,
         WinKind::CmdSearch,
-        WinKind::Hotkeys,
         WinKind::Params,
         WinKind::Settings,
         WinKind::PartsLibrary,
@@ -237,6 +234,27 @@ impl WinKind {
         WinKind::Faults,
         WinKind::Support,
     ];
+
+    /// THE IDENTITY OF THE WINDOW, the one it is opened under (`qymcad_shell::window`) and the one Esc finds it by
+    /// (`Windows::close_window`). egui keeps the place and size of a window under it, so the words stay as they were.
+    pub fn id(self) -> egui::Id {
+        egui::Id::new(match self {
+            WinKind::SaveTemplate => "win_save_as_template",
+            WinKind::Start => "win_start",
+            WinKind::DocProps => "win_doc_props",
+            WinKind::About => "win_about",
+            WinKind::Report => "win_report_problem",
+            WinKind::CmdSearch => "win_command_search",
+            WinKind::Params => "win_params",
+            WinKind::Settings => "win_settings",
+            WinKind::PartsLibrary => "win_parts_library",
+            WinKind::Updates => "win_check_updates",
+            WinKind::IconManager => "icon_manager_window",
+            WinKind::IconPackager => "icon_packager_dialog",
+            WinKind::Faults => "win_faults",
+            WinKind::Support => "win_support",
+        })
+    }
 }
 
 #[derive(Default)]
@@ -301,6 +319,23 @@ impl Windows {
         let on = !self.is(k);
         self.set(k, on);
         on
+    }
+    /// THE IDENTITY OF THE HELP WINDOW, which is no `WinKind`: its state is a record of its own (`help`).
+    pub fn help_id() -> egui::Id {
+        egui::Id::new("win_help")
+    }
+    /// CLOSE THE WINDOW OPENED UNDER `id`, as its cross closes it; answers whether an open window of this record was
+    /// closed. A window closed a frame ago still stands on the layers of that frame, and is no window to close.
+    pub fn close_window(&mut self, id: egui::Id) -> bool {
+        if id == Self::help_id() {
+            return std::mem::take(&mut self.help.open);
+        }
+        match WinKind::ALL.into_iter().find(|k| k.id() == id && self.is(*k)) {
+            Some(WinKind::Start) => self.show_start(false),
+            Some(k) => self.close(k),
+            None => return false,
+        }
+        true
     }
     /// CLOSE EVERYTHING. One line, and a window added later is closed by it without anybody remembering to.
     pub fn close_all(&mut self) {

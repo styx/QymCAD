@@ -270,8 +270,7 @@ pub fn begin_point_drag(
     // to pick it up says the same thing honestly: it does not move.
     let held = project.sketches[si].held_points();
     let mut best: Option<(f32, usize)> = None;
-    for pi in 0..project.sketches[si].points.len() {
-        let p = project.sketches[si].points[pi];
+    for (pi, p) in project.sketches[si].points.iter().enumerate() {
         if skip.contains(&p.id) || held.contains(&p.id) {
             continue;
         }
@@ -694,4 +693,6 @@ pub use snap::*;
 mod commands;
 pub use commands::*;
 mod options;
+mod ways;
+pub use ways::*;
 use options::*;

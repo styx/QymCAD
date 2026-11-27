@@ -41,6 +41,18 @@ mod tests {
         assert_eq!(qymcad_ui_state::hotkey_action(&restarted.set, "sketch", egui::Key::Z), Some("sketch.circle"), "after a restart the key went back to the factory one — the edit is lost");
     }
 
+    #[test]
+    fn the_key_pressed_again_survives_a_restart() {
+        let mut app = App::default();
+        assert_eq!(app.set.again, qymcad_ui_state::Again::PutsDown, "a key pressed again must put its tool down until the person chooses otherwise");
+        super::super::hotkeys::open_keyboard_settings(&mut app);
+        let chosen = crate::gui::hand::Hand::new(&mut app).press_word(&crate::i18n::tr("settings-again-cycles"), egui::Pos2::ZERO);
+        assert!(chosen, "setup: no choice \"takes the next way\" in Settings -> Keyboard");
+        let ron = ron::ser::to_string(&app.set).expect("the settings serialise");
+        let back: super::super::Settings = ron::from_str(&ron).expect("and read back");
+        assert_eq!(back.again, qymcad_ui_state::Again::Cycles, "after a restart the key pressed again puts its tool down again - the choice is lost");
+    }
+
     /// ONLY THE DIFFERENCES ARE STORED. A full layout in the record would mean that a new tool of the
     /// program never appears for anyone who has ever touched the keys: its action is simply not in the
     /// record.
@@ -509,7 +521,7 @@ mod tests {
         let prev = qymcad_i18n::language();
         qymcad_i18n::set_language("en");
         let mut app = App::default();
-        app.win.open(crate::gui::WinKind::Hotkeys);
+        super::super::hotkeys::open_keyboard_settings(&mut app);
         let ctx = egui::Context::default();
         super::super::install_fonts(&ctx);
         let screen = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1400.0, 900.0));
@@ -517,7 +529,7 @@ mod tests {
         let mut frame = |app: &mut App, events: Vec<egui::Event>| {
             time += 1.0 / 60.0;
             let input = egui::RawInput { screen_rect: Some(screen), time: Some(time), events, ..Default::default() };
-            let out = ctx.run_ui(input, |ui| app.hotkeys_window(ui.ctx()));
+            let out = ctx.run_ui(input, |ui| super::super::hotkeys::draw_settings(app, ui.ctx()));
             let mut shapes = Vec::new();
             out.shapes.into_iter().for_each(|c| flat(c.shape, &mut shapes));
             shapes
@@ -621,7 +633,7 @@ mod tests {
             let lang = qymcad_i18n::language();
             qymcad_i18n::set_language(code);
             let mut app = App::default();
-            app.win.open(crate::gui::WinKind::Hotkeys);
+            super::super::hotkeys::open_keyboard_settings(&mut app);
             let ctx = egui::Context::default();
             super::super::install_fonts(&ctx);
             let mut w = Frames { app, ctx, time: 0.0, lang };
@@ -636,7 +648,7 @@ mod tests {
             let screen = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1400.0, 900.0));
             let input = egui::RawInput { screen_rect: Some(screen), time: Some(self.time), events, ..Default::default() };
             let app = &mut self.app;
-            let out = self.ctx.run_ui(input, |ui| app.hotkeys_window(ui.ctx()));
+            let out = self.ctx.run_ui(input, |ui| super::super::hotkeys::draw_settings(app, ui.ctx()));
             let mut shapes = Vec::new();
             out.shapes.into_iter().for_each(|c| flat_shape(c.shape, &mut shapes));
             shapes
@@ -667,7 +679,7 @@ mod tests {
             self.frame(vec![egui::Event::Key { key, physical_key: None, pressed: false, repeat: false, modifiers: Modifiers::NONE }])
         }
 
-        /// A click on the key button of the extrude row, which shows `key`, so the window waits for its key; the row's
+        /// A click on the key button of the extrude row, which shows `key`, so the table waits for its key; the row's
         /// description.
         fn wait_for_extrude_key(&mut self, key: &str) -> String {
             let what = super::super::hotkeys::hotkey_what(HOTKEYS.iter().find(|r| r.action == "part.extrude").expect("the extrude row"));
@@ -795,7 +807,7 @@ mod tests {
     }
 
     /// THE CENTRE OF A ROW ICON drawn within the height of a row: from the top of its description to the bottom of the
-    /// last line under it. The grid centres every cell in the row's height, so while the window waits for a key the
+    /// last line under it. The grid centres every cell in the row's height, so while the table waits for a key the
     /// icons stand halfway down the waiting line, not on the line of the description.
     fn icon_on_row(shapes: &[egui::Shape], glyph: &str, cell: egui::Rect) -> Option<egui::Pos2> {
         shapes.iter().find_map(|s| match s {
@@ -935,3 +947,6 @@ mod tests {
         assert!(wrong.is_empty(), "{wrong:#?}");
     }
 }
+
+#[cfg(test)]
+mod in_the_settings_tests;

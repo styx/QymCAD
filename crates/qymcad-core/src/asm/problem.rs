@@ -1,9 +1,9 @@
 //! The placement problem: bodies, constraints between their anchors, and what the solver reports.
 //!
 //! A constraint is described here purely as meaning — what must hold. No derivatives and no numerics:
-//! derivatives come from automatic differentiation over the same code that computes the residual, and
-//! the iteration is driven by `levenberg-marquardt`. The split is deliberate, because domain logic and
-//! numerics fail in different ways and mixing them makes both harder to repair.
+//! the derivatives are written out in `solve::jacobian`, and the iteration is the damped step of
+//! `iterate`. The split is deliberate, because domain logic and numerics fail in different ways and
+//! mixing them makes both harder to repair.
 
 use super::frame::{Anchor, Pose};
 

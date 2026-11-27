@@ -332,3 +332,38 @@ fn the_captions_of_the_groups_stand_before_and_above_them() {
     assert_eq!(with.across(Edge::Top), 30.0 + bar::CAPTION + bar::GAP);
     assert_eq!(with.across(Edge::Left), 30.0, "at a side the captions take no room across");
 }
+
+/// THE WINDOW IN FRONT IS ONE OPENED AS A WINDOW. An area laid on the windows' layer after a window - a popup of a
+/// widget, a box a later piece of code lays with `egui::Area::new` - is raised over it on that layer and is no window.
+/// Reported behaviour: a box of fields at the geometry raised after the settings took Esc from them.
+#[test]
+fn an_area_raised_after_a_window_leaves_it_in_front() {
+    let ctx = egui::Context::default();
+    let id = egui::Id::new("a window");
+    for _ in 0..3 {
+        let _ = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let ctx = ui.ctx().clone();
+            window("A window", id, &ctx).show(&ctx, |ui| ui.label("in it"));
+            egui::Area::new(egui::Id::new("an area")).order(egui::Order::Middle).show(&ctx, |ui| ui.label("over it"));
+        });
+    }
+    assert_eq!(front_window(&ctx), Some(id), "an area laid after the window stands in front of it as a window");
+}
+
+/// THE CRATE'S `clippy.toml` CARRIES EVERY SETTING OF THE WORKSPACE'S BUT THE ONE IT LIFTS.
+///
+/// Clippy reads the nearest `clippy.toml` and nothing above it: the file of this crate replaces the workspace's, it
+/// does not add to it. It exists to lift `disallowed-methods`, since this crate is where `egui::Window::new` is
+/// called; any other setting the workspace file gains reaches this crate only when written here too.
+#[test]
+fn the_crate_clippy_file_keeps_the_workspace_settings() {
+    /// The top-level settings of a `clippy.toml`, each as written: a key at the start of a line and its value.
+    fn settings(text: &str) -> Vec<&str> {
+        text.lines().filter(|l| l.starts_with(|c: char| c.is_ascii_lowercase()) && l.contains('=')).collect()
+    }
+    let workspace = include_str!("../../../clippy.toml");
+    let here = settings(include_str!("../clippy.toml"));
+    let lifted = "disallowed-methods";
+    let missing: Vec<&str> = settings(workspace).into_iter().filter(|s| !s.starts_with(lifted) && !here.contains(s)).collect();
+    assert!(missing.is_empty(), "the workspace clippy.toml sets {missing:?}, and crates/qymcad-shell/clippy.toml, which replaces it here, does not");
+}

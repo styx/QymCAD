@@ -148,6 +148,9 @@ pub enum Entry {
     SearchByArticle,
     /// A path down the menus.
     Menu(&'static [Word]),
+    /// A path down the menus to a window, then the section of it under this word - the item opens the window on the
+    /// section it was left at.
+    Section { menu: &'static [Word], section: Word },
     /// The box, or the word, of the window labelled with this word - a check of the tree that has no hint of its own.
     Label(Word),
 }

@@ -45,7 +45,6 @@ file-quit = Quit
 
 ## Help menu
 
-help-hotkeys = Keyboard shortcuts…
 help-about = About…
 help-support = Support the author…
 
@@ -304,7 +303,13 @@ scheme-color-icon_datum_primary = datum primary accent
 scheme-color-icon_datum_secondary = datum secondary accent
 
 # --- KEYBOARD SHORTCUTS ---
-hotkeys-title = Keyboard shortcuts
+settings-hotkeys = Keyboard shortcuts
+settings-again = The key of a tool in hand, pressed again
+settings-again-puts-down = Puts the tool down
+settings-again-cycles = Cycles through its modes
+settings-again-hint = For the circle, the rectangle, the arc and the polygon: { $key } pressed again draws the circle by two points, then touching two curves, then by three points, and back. A drawing tool with one mode stays in hand.
+settings-again-hint-puts-down = The key of the tool in hand, pressed again, puts the tool down.
+settings-again-hint-unbound = For the circle, the rectangle, the arc and the polygon: the key of the tool pressed again takes its next mode - the circle by two points, then touching two curves, then by three points, and back. A drawing tool with one mode stays in hand.
 help-title = Help
 help-search = Search the help
 help-back = Back
@@ -419,7 +424,7 @@ hotkeys-cancel = Keep as it was
 hotkeys-waiting = Esc - cancels, Backspace - clears the key.
 hotkeys-unbound = no key
 hotkeys-clear = Leave without a key
-hotkeys-reset-area = Reset this section
+hotkeys-reset-area = Reset the { $area } keys
 hotkeys-fixed = Fixed: these keys belong to the system
 hotkeys-no-alt = Alt is kept for reaching keys from a text field. Choose a key without it.
 hotkeys-field-edits = In a text field Ctrl+H, Ctrl+U and Ctrl+W erase text, so they cannot run a command.
@@ -791,6 +796,8 @@ tool-rotate = Rotate
 opt-rect-rotated = Rotated: 2 points give a side, the third gives the height
 opt-text-as-note = Place it as a note (not geometry)
 opt-rect-mode = Rect:
+opt-polygon-mode = Polygon:
+opt-way-in-force = { $tool } { $way }
 tool-rect = Rectangle
 opt-radius = Radius
 opt-fillet-chord = Chord
@@ -2409,6 +2416,7 @@ face-center = Centre: [{ $v }]
 settings-search = Search the settings
 settings-search-empty = Nothing found — try another word
 settings-sec-general = General
+settings-sec-keyboard = Keyboard
 settings-sec-appearance = Appearance
 settings-sec-viewport = Viewport
 settings-sec-sketch = Sketch

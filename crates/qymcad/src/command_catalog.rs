@@ -46,18 +46,20 @@ pub fn part_tool_of(code: &str) -> Option<qymcad_ui_state::PartTool> {
 }
 
 /// PRESS A COMMAND, through the workbench that gave its row: its button, its row of "More" and the search come here
-/// alike. The command in hand pressed again is put down (`catalogue::again`).
+/// alike. The command in hand pressed again is put down, or stays as it is (`catalogue::again`).
 pub fn press(cmd: &Command, bc: &mut qymcad_ui_state::BarCtx) {
-    if let Some(down) = qymcad_ui_state::catalogue::again(cmd.launch, bc) {
-        bc.ask.push(down);
-        return;
+    match qymcad_ui_state::catalogue::again(cmd.launch, bc) {
+        Some(qymcad_ui_state::catalogue::TakenAgain::Down(ask)) => return bc.ask.push(ask),
+        Some(qymcad_ui_state::catalogue::TakenAgain::Stays(_)) => return,
+        None => {}
     }
     if let Some(bench) = BENCHES.into_iter().find(|b| b.rows.iter().any(|r| r.code == cmd.code)) {
         (bench.press)(cmd.launch, bc);
     }
 }
 
-/// THE KEY OF THE COMMAND IN HAND PRESSED AGAIN puts it down, as its button pressed again does: what is asked for is in
+/// THE KEY OF THE COMMAND IN HAND PRESSED AGAIN puts it down, as its button pressed again does; a drawing tool that
+/// stays in hand takes its next way, and one with a single way stays as it is. What is asked for is in
 /// `bc.ask`, and the key is spent. Any other key is left to the keys of its workbench. A letter typed into a field never
 /// reaches here (`pressed_chord`).
 pub fn key_again(bc: &mut qymcad_ui_state::BarCtx, key: qymcad_ui_state::Chord) -> bool {
@@ -71,8 +73,12 @@ pub fn key_again(bc: &mut qymcad_ui_state::BarCtx, key: qymcad_ui_state::Chord) 
         }
     };
     let Some(cmd) = qymcad_ui_state::hotkey_action(&*bc.set, area, key).and_then(command_of_key) else { return false };
-    let Some(down) = qymcad_ui_state::catalogue::again(cmd.launch, bc) else { return false };
-    bc.ask.push(down);
+    let ask = match qymcad_ui_state::catalogue::again(cmd.launch, bc) {
+        None => return false,
+        Some(qymcad_ui_state::catalogue::TakenAgain::Down(ask)) => ask,
+        Some(qymcad_ui_state::catalogue::TakenAgain::Stays(shape)) => qymcad_ui_state::BarAsk::NextWay(shape),
+    };
+    bc.ask.push(ask);
     true
 }
 

@@ -180,7 +180,7 @@ pub fn tool_box(ctx: &egui::Context, draw: &DrawCtx, rect: egui::Rect, b: &Field
         let Some(w) = p.at else { continue };
         let id = b.id.with(("at", i));
         let at = box_corner(ctx, id, Place::close_by(By::Point(w)), look);
-        let shown = egui::Area::new(id).current_pos(at).movable(true).order(AT_GEOMETRY).show(ctx, |ui| {
+        let shown = at_geometry(id).current_pos(at).movable(true).show(ctx, |ui| {
             at_geometry_ui(ui);
             egui::Frame::popup(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -199,7 +199,7 @@ pub fn tool_box(ctx: &egui::Context, draw: &DrawCtx, rect: egui::Rect, b: &Field
     // NOT CONSTRAINED BY EGUI: a box near the right edge of the screen had its rows squeezed to what was left there, the
     // rule laid it anew by that narrow size, and the box of a chamfer stood at four places over its first five frames,
     // the last over the corner it sizes. Where the box stands inside the view is the rule's (`box_corner`).
-    let shown = egui::Area::new(b.id).current_pos(at).movable(true).constrain(false).order(AT_GEOMETRY).show(ctx, |ui| {
+    let shown = at_geometry(b.id).current_pos(at).movable(true).constrain(false).show(ctx, |ui| {
         at_geometry_ui(ui);
         egui::Frame::popup(ui.style()).show(ui, |ui| {
             let drawing = Drawing { b, look, trial: trial.as_ref() };

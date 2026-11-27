@@ -111,7 +111,7 @@ pub fn described(s: &Session, tools: &[&Tool]) -> (Vec<String>, Vec<Vec<String>>
         for e in t.entries {
             match e {
                 Entry::Button(k) => hints.push(s.word(k)),
-                Entry::Menu(path) => menus.push(path.iter().map(|k| s.word(k)).collect()),
+                Entry::Menu(path) | Entry::Section { menu: path, .. } => menus.push(path.iter().map(|k| s.word(k)).collect()),
                 Entry::Search(k) => commands.push(s.word(k)),
                 Entry::SearchByArticle => commands.push(article_title(&s.language(), t.help)),
                 Entry::Key(..) | Entry::Label(_) => {}

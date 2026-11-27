@@ -104,8 +104,7 @@ pub(crate) fn draw_icon_manager_window_in_dirs(ctx: &egui::Context, wc: &mut Win
 
     let initial_selected_pack_id = wc.win.icon_manager.selected_pack_id.clone();
 
-    egui::Window::new(format!("{} {}", ph::PALETTE, crate::i18n::tr("icontheme-mgr-title")))
-        .id(egui::Id::new("icon_manager_window"))
+    qymcad_shell::window(format!("{} {}", ph::PALETTE, crate::i18n::tr("icontheme-mgr-title")), qymcad_ui_state::WinKind::IconManager.id(), ctx)
         .open(&mut open)
         .default_size(egui::vec2(1020.0, 700.0))
         .min_size(egui::vec2(760.0, 500.0))

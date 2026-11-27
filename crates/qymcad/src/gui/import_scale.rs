@@ -322,7 +322,7 @@ pub(crate) fn import_scale_window(wc: &mut WinCtx, ctx: &egui::Context) {
     let mut keep = ctx.input(|i| i.key_pressed(egui::Key::Enter));
     // Esc, or Ctrl+Z asked while the window waited (`step_through_history`)
     let mut cancel = ctx.input(|i| i.key_pressed(egui::Key::Escape)) || wc.edits.open_kind == qymcad_ui_state::OpenEdit::AskingDropped;
-    egui::Window::new(format!("{} {}", ph::RULER, crate::i18n::tr("import-scale-title"))).id(egui::Id::new("win_import_scale"))
+    qymcad_shell::window(format!("{} {}", ph::RULER, crate::i18n::tr("import-scale-title")), egui::Id::new("win_import_scale"), ctx)
         .collapsible(false)
         .resizable(false)
         // at the bottom, not in the middle: the middle of the view is where the model it asks about stands

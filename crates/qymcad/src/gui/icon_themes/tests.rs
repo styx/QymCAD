@@ -827,15 +827,18 @@ fn icon_manager_window_displays_rejected_archives_with_reason() {
     crate::gui::install_fonts(&ctx);
     app.win.open(WinKind::IconManager);
     let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, 800.0));
+    // THE LIST ARRIVES FROM THE DISCOVERY WORKER, so frames are drawn until it shows, as a person waits for it. Two
+    // frames and no wait were red in the full parallel run (190 s of load), the worker not yet done.
     let mut painted = Vec::new();
-    for _ in 0..2 {
+    crate::gui::session::waiting::until("the rejected archive in the icon manager", || {
         let input = egui::RawInput { screen_rect: Some(screen), ..Default::default() };
         let output = ctx.run_ui(input, |ui| draw_icon_manager_window_in_dirs(ui.ctx(), &mut app.win_ctx(&mut Vec::new()), &dirs));
         painted.clear();
         for shape in &output.shapes {
             crate::gui::screen_keys::tests::collect_text(&shape.shape, &mut painted);
         }
-    }
+        painted.iter().any(|text| text.contains("broken_pack.qicons"))
+    });
 
     assert!(painted.iter().any(|text| text.contains("broken_pack.qicons")), "icon manager window must display rejected archive filename: {painted:?}");
     assert!(painted.iter().any(|text| text.contains(&crate::i18n::tr("icontheme-mgr-rejected-title"))), "icon manager window must display rejected section title: {painted:?}");

@@ -51,6 +51,11 @@ pub(crate) fn enter(s: &mut Session, entry: &Entry) {
             let words: Vec<String> = path.iter().map(|k| s.word(k)).collect();
             s.menu(&words.iter().map(String::as_str).collect::<Vec<_>>());
         }
+        Entry::Section { menu, section } => {
+            enter(s, &Entry::Menu(menu));
+            let section = s.word(section);
+            s.press_word(&section);
+        }
         Entry::Label(word) => {
             let word = s.word(word);
             s.press_word(&word);

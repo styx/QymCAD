@@ -213,9 +213,12 @@ pub(crate) fn window(ctx: &mut HelpCtx, ui_ctx: &egui::Context) {
     let mut back = false;
     let mut site = false;
     let mut link: Option<String> = None;
-    egui::Window::new(format!("{} {}", ph::BOOK_OPEN, crate::i18n::tr("help-title"))).id(egui::Id::new("win_help")).open(&mut open).resizable(true).default_width(860.0).default_height(600.0).show(
-        ui_ctx,
-        |ui| {
+    qymcad_shell::window(format!("{} {}", ph::BOOK_OPEN, crate::i18n::tr("help-title")), qymcad_ui_state::Windows::help_id(), ui_ctx)
+        .open(&mut open)
+        .resizable(true)
+        .default_width(860.0)
+        .default_height(600.0)
+        .show(ui_ctx, |ui| {
             // THE CONTENTS ON THE LEFT — AS A PANEL OF ITS OWN of fixed width: the help is not one
             // page, and without a permanent list there is no knowing what is in it at all.
             egui::Panel::left("help_toc").resizable(false).exact_size(240.0).show(ui, |ui| {
@@ -292,8 +295,7 @@ pub(crate) fn window(ctx: &mut HelpCtx, ui_ctx: &egui::Context) {
                     });
                 });
             });
-        },
-    );
+        });
     if site {
         let a = article.clone();
         on_site(ctx, &a);

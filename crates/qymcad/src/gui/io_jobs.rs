@@ -1143,8 +1143,7 @@ pub(crate) fn save_part_window(wc: &mut qymcad_ui_state::WinCtx, ctx: &egui::Con
     }
     let mut open = true;
     let (mut do_save, mut cancel) = (false, false);
-    egui::Window::new(format!("{} {}", ph::PACKAGE, crate::i18n::tr("io-save-as-part")))
-        .id(egui::Id::new("win_save_as_part"))
+    qymcad_shell::window(format!("{} {}", ph::PACKAGE, crate::i18n::tr("io-save-as-part")), egui::Id::new("win_save_as_part"), ctx)
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
